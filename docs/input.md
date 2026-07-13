@@ -23,7 +23,7 @@ use Rak200\HttpInput\Input;
 
 ## `str`
 
-Reads `$key` from `$source` as a string (coerced via `Filter::toString`), or `$default` when the key is absent or the value cannot be coerced (e.g. an array).
+Reads `$key` from `$source` as a string (coerced via `Filter::toStr`), or `$default` when the key is absent or the value cannot be coerced (e.g. an array).
 
 ```php
 $source = ['name' => 'Ada', 'age' => 42, 'tags' => ['a']];

@@ -1,7 +1,7 @@
 {
     "name": "rak200/http-input",
     "description": "Typed, safe reading of HTTP request data (GET/POST/cookies/server) for PHP 8.4+. Pure typed accessors over any source array plus thin superglobal shortcuts. Built on rak200/utils.",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "type": "library",
     "license": "MIT",
     "keywords": ["input", "request", "http", "get", "post", "sanitize", "php84"],
@@ -19,7 +19,7 @@
     },
     "require": {
         "php": "^8.4",
-        "rak200/utils": "^1.10"
+        "rak200/utils": "^4.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^13.1",

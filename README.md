@@ -9,7 +9,7 @@ It is a thin, single-class companion to [`rak200/utils`](https://github.com/rak2
 ## Requirements
 
 - PHP 8.4+
-- [`rak200/utils`](https://github.com/rak200/utils) `^1.10` (installed automatically by Composer)
+- [`rak200/utils`](https://github.com/rak200/utils) `^4.0` (installed automatically by Composer)
 
 ## Installation
 
@@ -64,6 +64,10 @@ $remember = Input::bool($_POST, 'remember', false);
 ## Documentation
 
 Per-method reference with runnable examples lives in [`docs/`](docs/README.md).
+
+## Roadmap
+
+Planned fixes and known issues are tracked in [`ROADMAP.md`](ROADMAP.md), each as an independently resolvable item.
 
 ## Conventions
 

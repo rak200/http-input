@@ -29,7 +29,7 @@ final class Input {
     private function __construct() {}
 
     /**
-     * Reads $key from $source as a string (coerced via {@see Filter::toString()}),
+     * Reads $key from $source as a string (coerced via {@see Filter::toStr()}),
      * or $default when the key is absent or the value cannot be coerced.
      *
      * @param array<array-key, mixed> $source
@@ -38,7 +38,7 @@ final class Input {
         if (!Arr::has($source, $key)) {
             return $default;
         }
-        return Filter::toString($source[$key], $default);
+        return Filter::toStr($source[$key], $default);
     }
 
     /**
