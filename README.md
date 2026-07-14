@@ -1,10 +1,29 @@
 # rak200/http-input
 
-Typed, safe reading of HTTP request data for PHP 8.4+.
+Strict, typed reading — and validation — of HTTP request data for PHP 8.4+.
 
-Request data arrives as untrusted strings in `$_GET`, `$_POST`, and friends. This package reads a key, coerces it to the type you ask for, and falls back to a default when the key is missing or the value cannot be represented — no exceptions, no boilerplate `isset()` ladders.
+Request data arrives as untrusted text in `$_GET`, `$_POST`, and friends. This package reads it through a **constraint chain**: exactly one *coercer* fixes the value's type, *verifiers* check it, and a *terminal* decides what a failure means — throw, fall back, or collect. Reading, verification, and validation are one mechanism with three endings:
 
-It is a thin, single-class companion to [`rak200/utils`](https://github.com/rak200/utils): the coercion is delegated to `Rak200\Utils\Filter`, keeping `utils` pure and this package focused on the request layer.
+```php
+use Rak200\HttpInput\Input;
+
+// throw — API / machine input (a 400 in the making)
+$page = Input::from($_GET, 'page')->int()->min(1)->value();
+
+// fall back — optional parameters
+$q    = Input::from($_GET, 'q')->str()->orNull();
+$size = Input::from($_GET, 'size')->int()->between(1, 100)->orElse(20);
+
+// collect — forms (report every failure at once)
+$form  = Input::validate($_POST);
+$name  = $form->field('name')->str()->required()->minLen(2)->get();
+$email = $form->field('email')->str()->required()->email()->get();
+if ($form->fails()) {
+    return $form->messages();   // ['email' => ['must be a valid e-mail'], ...]
+}
+```
+
+The chain is byte-for-byte the same in all three modes — only the terminal changes. Coercion delegates to [`rak200/utils`](https://github.com/rak200/utils) (`Filter`, `Dt`, `Enum`); this package adds the orchestration, not a new primitive layer.
 
 ## Requirements
 
@@ -17,68 +36,83 @@ It is a thin, single-class companion to [`rak200/utils`](https://github.com/rak2
 composer require rak200/http-input
 ```
 
-## Usage
+## The chain
+
+**Coercers** open the chain and fix the type — one per chain:
 
 ```php
-use Rak200\HttpInput\Input;
+Input::from($src, 'name')->str();                    // string
+Input::from($src, 'page')->int();                    // int      ('42'; '42.0' only via coerce())
+Input::from($src, 'price')->float();                 // float    ('9.99')
+Input::from($src, 'score')->num();                   // int|float, preserving which
+Input::from($src, 'remember')->bool();               // bool     ('on'/absent, 'true'/'false')
+Input::from($src, 'born')->date('Y-m-d');            // DateTimeImmutable
+Input::from($src, 'at')->datetime();                 // DateTimeImmutable ('Y-m-d H:i:s')
+Input::from($src, 'since')->timestamp();             // int (epoch seconds)
+Input::from($src, 'role')->enum(Role::class);        // the enum case, by backed value
+Input::from($src, 'tags')->listOf(Rule::str());      // list, each element checked
 ```
 
-### Pure core — read from any source array
+A bare coercer **asserts** — the value must already present as the type (`'42'` is an int, `'42.0'` is not). `->coerce()` opts into any *lossless* conversion: `'42.0'` → `42`, but `'42.5'` never becomes an int. An unchecked checkbox submits nothing, so for a bare `bool()` absence is a legitimate `false`, not missing data.
 
-The typed accessors take the source array as their first argument, so they are pure and testable, and work directly on a superglobal:
+**Verifiers** check the coerced value — any number of them:
 
 ```php
-Input::str($_POST, 'name');                 // ?string  ('' stays '', arrays → default)
-Input::int($_GET, 'page', 1);               // int      ('42' → 42, 'abc' → 1)
-Input::int($_GET, 'page', 1, min: 1, max: 100);   // clamped into [1, 100]
-Input::float($_POST, 'price');              // ?float
-Input::bool($_POST, 'remember');            // ?bool    ('on'/'yes'/'1' → true)
-Input::array($_POST, 'tags', []);           // array<...> (a name[] field)
-
-Input::has($_GET, 'q');                     // bool — key present (even if null)
-Input::all($_POST);                         // the whole bag, unchanged
+->required()                    // presence (absent key → MissingInputException)
+->min(1)->max(100)->between(1, 100)          // ordered range (numbers, dates)
+->minLen(2)->maxLen(80)->lenBetween(2, 80)   // characters for strings, count for lists
+->email()->url()->pattern('/^[a-z0-9-]+$/')  // format
+->in(['s', 'm', 'l'])           // ad-hoc membership
+->sameAs($password)             // cross-field match (an already-read value)
+->nullable()                    // explicit null is accepted (JSON trees)
 ```
 
-Coercion rules come from [`Filter::to*`](https://github.com/rak200/utils/blob/master/docs/filter.md): strings are trimmed, `"42"` → `42`, `"on"`/`"yes"`/`"1"` → `true`, and anything that cannot be represented yields the default you passed.
-
-### Convenience shortcuts — read a string from a superglobal
-
-For the common "fetch one parameter" case:
+**Custom constraints** plug into the same chain:
 
 ```php
-Input::get('q');                  // ?string from $_GET
-Input::post('name', 'Anonymous'); // ?string from $_POST, with a default
-Input::request('id');             // $_REQUEST
-Input::cookie('session');         // $_COOKIE
-Input::server('HTTP_HOST');       // $_SERVER
-Input::env('APP_ENV');            // $_ENV
+->satisfy(fn ($v) => $v % 3 === 0, 'must be divisible by 3')   // one-off
+->rule(new DivisibleBy(3))                                     // reusable Constraint
 ```
 
-For a **typed** read from a superglobal, call the core directly — no separate `getInt`/`postBool` methods needed:
+Cross-field rules take the *already-read value* and gate on it — a missing dependency reports its own failure, never a spurious one:
 
 ```php
-$page     = Input::int($_GET, 'page', 1, min: 1);
-$remember = Input::bool($_POST, 'remember', false);
+$pw  = $form->field('password')->str()->required()->minLen(8)->get();
+$pwc = $form->field('password_confirm')->str()->required()->requires($pw)->sameAs($pw)->get();
+```
+
+## Failures are typed
+
+Every failure is an `InputException` — `MissingInputException` (key absent) or `InvalidInputException` (present but failed), with per-constraint subtypes such as `OutOfRangeInputException` — so callers can branch on the failure kind. The terminal decides each failure's fate: `value()` throws the first, `get()` records all, `orNull()`/`orElse()` discard.
+
+## Superglobal shortcuts
+
+`get` / `post` / `cookie` / `server` / `env` / `request` are sugar over `from()` and return an **accessor**, not a value — the only place the library touches a superglobal:
+
+```php
+$page     = Input::get('page')->int()->min(1)->value();
+$remember = Input::post('remember')->bool()->value();
 ```
 
 ## Documentation
 
-Per-method reference with runnable examples lives in [`docs/`](docs/README.md).
+Per-class reference with runnable examples lives in [`docs/`](docs/README.md).
 
 ## Roadmap
 
-Planned fixes and known issues are tracked in [`ROADMAP.md`](ROADMAP.md), each as an independently resolvable item.
+Planned work is tracked in [`ROADMAP.md`](ROADMAP.md) — currently the JSON schema validation milestone (RFC 0014) and self-contained follow-up items.
 
 ## Conventions
 
-- `Input` is `final` with a `private` constructor — a pure static API, no instances.
-- Strict types everywhere (`declare(strict_types=1)`).
-- No method throws: a missing key or an uncoercible value returns the caller-supplied default.
-- The core is pure (source array in); only the `get`/`post`/`request`/`cookie`/`server`/`env` shortcuts touch superglobals.
+- Final classes, strict types everywhere (`declare(strict_types=1)`).
+- The chain is immutable — every chain call returns a new instance; rules are reusable values.
+- Failures are input exceptions; misuse of the chain itself (a terminal before a coercer, two coercers) is a `LogicException` — a programmer error, never an input failure.
+- Keys are looked up literally, never as dot-paths.
+- The core is pure (source array in); only the superglobal shortcuts touch superglobals.
 
 ## Versioning
 
-Follows [Semantic Versioning](https://semver.org).
+Follows [Semantic Versioning](https://semver.org). Pre-1.0: minor versions may break.
 
 ## Licence
 
