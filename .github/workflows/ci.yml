@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: input
+
+jobs:
+  test:
+    name: PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.4', '8.5']
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          path: input
+
+      # rak200/utils is consumed through a "type": "path" repository entry
+      # pointing at the sibling ../utils checkout (see CLAUDE.md), so CI
+      # recreates that layout: both repos side by side in the workspace.
+      - name: Checkout rak200/utils (path dependency)
+        uses: actions/checkout@v5
+        with:
+          repository: rak200/utils
+          path: utils
+
+      - name: Setup PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: bcmath, mbstring
+          coverage: pcov
+          tools: composer:v2
+
+      - name: Validate composer.json
+        run: composer validate --no-check-publish
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: PHP-CS-Fixer (dry-run)
+        if: matrix.php == '8.4'
+        run: composer cs-check
+
+      - name: PHPStan (level max)
+        run: composer phpstan
+
+      - name: PHPUnit
+        run: composer test -- --coverage-clover=coverage.xml
+
+      - name: Upload coverage to Codecov
+        if: matrix.php == '8.4'
+        uses: codecov/codecov-action@v5
+        with:
+          files: input/coverage.xml
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

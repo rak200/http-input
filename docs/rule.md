@@ -237,6 +237,6 @@ $outcome->failures;   // [OutOfRangeInputException('must be at least 1')]
 Rule::int()->apply('42', typed: true)->failed();   // true — a JSON string is not an int
 ```
 
-`applyAbsent()` answers for an absent key where the chain has an opinion: `required()` → the Missing failure, bare `bool` → `false`; null otherwise — the terminal decides.
+`applyAbsent($typed = false)` answers for an absent key where the chain has an opinion: `required()` → the Missing failure, bare `bool` → `false`; null otherwise — the terminal decides. The bare-`bool` `false` fires only untyped: the unchecked-checkbox convention is HTML's, so in a decoded JSON tree (`typed: true`) an absent bool follows the normal presence rules.
 
 [↑ Back to top](#rule)

@@ -2,7 +2,7 @@
 
 [← Reference](README.md)
 
-The static entry facade to the constraint chain: `from` binds `(source, key)` into an [`Accessor`](accessor.md), `validate` opens collect mode over a payload ([`Validator`](validator.md)), and the superglobal shortcuts are pure sugar over `from` — the only place the library touches a superglobal.
+The static entry facade to the constraint chain: `from` binds `(source, key)` into an [`Accessor`](accessor.md), `validate` opens collect mode over a payload ([`Validator`](validator.md)), and `json` validates the request body against a [`Schema`](schema.md). Everything else is pure — only the superglobal shortcuts (sugar over `from`) and `json` (`php://input`) touch the request environment.
 
 ```php
 use Rak200\HttpInput\Input;
@@ -12,6 +12,7 @@ use Rak200\HttpInput\Input;
 
 - [`from`](#from)
 - [`validate`](#validate)
+- [`json`](#json)
 - [`get` / `post` / `cookie` / `server` / `env` / `request`](#get--post--cookie--server--env--request)
 
 ---
@@ -43,6 +44,26 @@ $email = $form->field('email')->str()->required()->email()->get();
 if ($form->fails()) {
     $form->messages();   // ['email' => ['must be a valid e-mail']]
 }
+```
+
+[↑ Back to top](#input)
+
+---
+
+## `json`
+
+Reads the raw request body (`php://input`), decodes it (`Json::decode` forces `JSON_THROW_ON_ERROR`), and validates the tree against a [`Schema`](schema.md), returning a [`Result`](schema.md#result) with path-keyed failures. A malformed body throws `JsonException` — a 400 in its own right, deliberately distinct from schema errors. The pure equivalent is `$schema->validate($decoded)`.
+
+```php
+$schema = Schema::object(['qty' => Rule::int()->min(1)]);   // combinators: schema.md
+
+try {
+    $result = Input::json($schema);
+} catch (JsonException) {
+    // malformed body — reject before any schema concern
+}
+
+$result->messages();   // ['qty' => ['must be at least 1']]
 ```
 
 [↑ Back to top](#input)

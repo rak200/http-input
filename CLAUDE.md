@@ -61,8 +61,8 @@ General testing conventions are in the shared file. http-input specifics:
 SemVer policy and the release checklist live in the shared conventions. http-input deltas:
 
 - Not on Packagist yet — consumers resolve from git (see the Project Overview note on the `path` repository).
-- No CI workflow yet — `.github/workflows/ci.yml` from the shared conventions is still pending here; the local gate (`composer test`, `composer phpstan`, `composer cs-check`) is the release gate until it exists.
+- CI deviates from the canonical workflow in one step: it checks out `rak200/utils` **next to** the repo (twin `actions/checkout` into `input/` + `utils/`, `working-directory: input`) so the `"type": "path"` repository entry resolves — meaning CI tests against utils *master*, not a released tag, faithful to the local sibling arrangement until both libraries land on Packagist.
 
 ## Roadmap
 
-Pending work is tracked in the repo-root [ROADMAP.md](ROADMAP.md) (public, linked from the README): the **0.2.0 redesign** — strict reads + unified verification/validation per RFCs 0013/0014 in the devr repository — plus self-contained follow-up items. Items are **pruned** on delivery (shared release checklist); `CHANGELOG.md` is the historical record.
+Pending work is tracked in the repo-root [ROADMAP.md](ROADMAP.md) (public, linked from the README) — self-contained follow-up items surfaced by release reviews. Items are **pruned** on delivery (shared release checklist); `CHANGELOG.md` is the historical record.

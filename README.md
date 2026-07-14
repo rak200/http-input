@@ -1,5 +1,15 @@
 # rak200/http-input
 
+[![CI](https://github.com/rak200/http-input/actions/workflows/ci.yml/badge.svg)](https://github.com/rak200/http-input/actions/workflows/ci.yml)
+[![Coverage](https://codecov.io/gh/rak200/http-input/graph/badge.svg)](https://codecov.io/gh/rak200/http-input)
+[![Latest tag](https://img.shields.io/github/v/tag/rak200/http-input?sort=semver)](https://github.com/rak200/http-input/tags)
+[![PHP](https://img.shields.io/badge/php-8.4%2B-777bb4?logo=php&logoColor=white)](https://www.php.net/)
+[![PHPStan](https://img.shields.io/badge/PHPStan-level%20max-brightgreen?logo=php&logoColor=white)](https://phpstan.org/)
+[![Code style](https://img.shields.io/badge/code%20style-PHP--CS--Fixer-blue?logo=php&logoColor=white)](.php-cs-fixer.dist.php)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![SemVer](https://img.shields.io/badge/semver-2.0.0-blue)](https://semver.org/spec/v2.0.0.html)
+[![Keep a Changelog](https://img.shields.io/badge/changelog-Keep%20a%20Changelog-orange)](CHANGELOG.md)
+
 Strict, typed reading — and validation — of HTTP request data for PHP 8.4+.
 
 Request data arrives as untrusted text in `$_GET`, `$_POST`, and friends. This package reads it through a **constraint chain**: exactly one *coercer* fixes the value's type, *verifiers* check it, and a *terminal* decides what a failure means — throw, fall back, or collect. Reading, verification, and validation are one mechanism with three endings:
@@ -125,7 +135,7 @@ Per-class reference with runnable examples lives in [`docs/`](docs/README.md).
 
 ## Roadmap
 
-Planned work is tracked in [`ROADMAP.md`](ROADMAP.md) — currently the JSON schema validation milestone (RFC 0014) and self-contained follow-up items.
+Planned work is tracked in [`ROADMAP.md`](ROADMAP.md) — self-contained follow-up items surfaced by release reviews.
 
 ## Conventions
 
