@@ -46,9 +46,6 @@ tables (numeric assert/coerce, bool vocabulary) translate 1:1 into data provider
 8. **Release 0.2.0** — changelog, tag, and RFCs 0013/0014 marked `Implemented` in
    devr.
 
-Open (owner decision): adopt PHP-CS-Fixer (strictest consolidated preset,
-`@PhpCsFixer` + risky) alongside the existing PHPStan `level: max`.
-
 ## Follow-up items
 
 Each item below is self-contained and meant to be resolved **independently** — its
