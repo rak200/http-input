@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Rak200\HttpInput\Tests;
 
+use DateTimeImmutable;
 use LogicException;
 use PHPUnit\Framework\TestCase;
 use Rak200\HttpInput\Accessor;
@@ -12,6 +13,8 @@ use Rak200\HttpInput\Exception\LengthInputException;
 use Rak200\HttpInput\Exception\MissingInputException;
 use Rak200\HttpInput\Exception\OutOfRangeInputException;
 use Rak200\HttpInput\Input;
+use Rak200\HttpInput\Rule;
+use Rak200\HttpInput\Tests\Fixture\Priority;
 
 use function is_int;
 
@@ -201,6 +204,31 @@ final class AccessorTest extends TestCase
         ;
 
         $this->assertSame(9, $value);
+    }
+
+    public function testDomainCoercersOpenTheChainThroughTheAccessor(): void
+    {
+        $born = Input::from(['born' => '1990-12-10'], 'born')->date()->value();
+        $this->assertInstanceOf(DateTimeImmutable::class, $born);
+        $this->assertSame('1990-12-10', $born->format('Y-m-d'));
+
+        $this->assertSame(
+            Priority::High,
+            Input::from(['priority' => '3'], 'priority')->enum(Priority::class)->value(),
+        );
+        $this->assertSame(
+            [1, 2],
+            Input::from(['ids' => ['1', '2']], 'ids')->listOf(Rule::int())->value(),
+        );
+        $this->assertSame(
+            1736899200,
+            Input::from(['at' => '1736899200'], 'at')->timestamp()->value(),
+        );
+    }
+
+    public function testNullableAcceptsAPresentNullThroughTheAccessor(): void
+    {
+        $this->assertNull(Input::from(['q' => null], 'q')->str()->nullable()->value());
     }
 
     public function testAccessorsAreImmutable(): void

@@ -11,6 +11,7 @@ use Rak200\HttpInput\Exception\MismatchInputException;
 use Rak200\HttpInput\Exception\MissingInputException;
 use Rak200\HttpInput\Exception\OutOfRangeInputException;
 use Rak200\HttpInput\Input;
+use Rak200\HttpInput\Rule;
 use Rak200\HttpInput\Validator;
 
 /**
@@ -53,6 +54,7 @@ final class ValidatorTest extends TestCase
 
         $this->assertFalse($form->fails());
         $this->assertSame('Ada Lovelace', $name);
+        $this->assertSame('ada@example.com', $email);
         $this->assertSame(36, $age);
         $this->assertSame($pw, $pwc);
         $this->assertSame(
@@ -219,6 +221,27 @@ final class ValidatorTest extends TestCase
         ;
 
         $this->assertSame(['a' => ['first'], 'b' => ['second']], $form->messages());
+    }
+
+    public function testListElementFailuresAreIndexKeyedInTheBag(): void
+    {
+        $form = Input::validate(['tags' => ['s', 'x', 'm']]);
+
+        $tags = $form->field('tags')->listOf(Rule::str()->in(['s', 'm', 'l']))->required()->minLen(1)->get();
+
+        $this->assertTrue($form->fails());
+        $this->assertSame(['tags.1' => ['must be one of s, m, l']], $form->messages());
+        $this->assertSame(['s', 'x', 'm'], $tags);
+        $this->assertSame(['tags' => ['s', 'x', 'm']], $form->values());
+    }
+
+    public function testAnAbsentRequiredCheckboxArrayIsMissingNotEmpty(): void
+    {
+        $form = Input::validate([]);   // no checkbox ticked: the array is absent, not []
+
+        $form->field('tags')->listOf(Rule::str())->required()->minLen(1)->get();
+
+        $this->assertInstanceOf(MissingInputException::class, $form->errors()['tags'][0]);
     }
 
     public function testFieldAndChainErrorsAccumulateOnTheSameField(): void

@@ -10,6 +10,7 @@ use LogicException;
 use Rak200\HttpInput\Exception\InputException;
 use Rak200\HttpInput\Exception\MissingInputException;
 use Rak200\Utils\Arr;
+use UnitEnum;
 
 /**
  * A {@see Rule} bound to a `(source, key)`, plus the terminals (RFC 0013).
@@ -92,11 +93,72 @@ final class Accessor
     }
 
     /**
+     * Opens the chain as a date read in $format — see {@see Rule::date()}.
+     */
+    public function date(string $format = 'Y-m-d'): self
+    {
+        return $this->open(Rule::date($format));
+    }
+
+    /**
+     * Opens the chain as a time read in $format — see {@see Rule::time()}.
+     */
+    public function time(string $format = 'H:i:s'): self
+    {
+        return $this->open(Rule::time($format));
+    }
+
+    /**
+     * Opens the chain as a datetime read in $format — see
+     * {@see Rule::datetime()}.
+     */
+    public function datetime(string $format = 'Y-m-d H:i:s'): self
+    {
+        return $this->open(Rule::datetime($format));
+    }
+
+    /**
+     * Opens the chain as a Unix-timestamp read — see {@see Rule::timestamp()}.
+     */
+    public function timestamp(): self
+    {
+        return $this->open(Rule::timestamp());
+    }
+
+    /**
+     * Opens the chain as an enum read — see {@see Rule::enum()}.
+     *
+     * @param class-string<UnitEnum> $enumClass
+     */
+    public function enum(string $enumClass, bool $byName = false): self
+    {
+        return $this->open(Rule::enum($enumClass, $byName));
+    }
+
+    /**
+     * Opens the chain as a list read with $element as the element rule —
+     * see {@see Rule::listOf()}; element failures are index-keyed
+     * (`tags.0`).
+     */
+    public function listOf(?Rule $element = null): self
+    {
+        return $this->open(Rule::listOf($element));
+    }
+
+    /**
      * Opts into lenient, lossless coercion — see {@see Rule::coerce()}.
      */
     public function coerce(): self
     {
         return $this->with($this->openedRule()->coerce());
+    }
+
+    /**
+     * Accepts an explicit null value — see {@see Rule::nullable()}.
+     */
+    public function nullable(): self
+    {
+        return $this->with($this->openedRule()->nullable());
     }
 
     /**

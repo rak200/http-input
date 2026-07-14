@@ -89,6 +89,18 @@ final class RuleVerifiersTest extends TestCase
         $this->assertFalse(Rule::str()->maxLen(3)->apply('abc')->failed());
     }
 
+    public function testLengthMessagesUseSingularGrammarForOne(): void
+    {
+        $this->assertSame(
+            'must be at least 1 character',
+            Rule::str()->minLen(1)->apply('')->failures[0]->getMessage(),
+        );
+        $this->assertSame(
+            'must be at most 1 character',
+            Rule::str()->maxLen(1)->apply('ab')->failures[0]->getMessage(),
+        );
+    }
+
     public function testLenBetweenIsInclusiveOnBothEnds(): void
     {
         $rule = Rule::str()->lenBetween(1, 3);

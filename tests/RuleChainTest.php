@@ -118,7 +118,7 @@ final class RuleChainTest extends TestCase
     public function testSatisfyRaisesTheGivenExceptionSubtype(): void
     {
         $outcome = Rule::int()
-            ->satisfy(static fn (mixed $value): bool => false, 'never', OutOfRangeInputException::class)
+            ->satisfy(static fn (): bool => false, 'never', OutOfRangeInputException::class)
             ->apply('1')
         ;
 
@@ -171,6 +171,31 @@ final class RuleChainTest extends TestCase
 
         $this->assertFalse($outcome->failed());   // present-but-empty is present
         $this->assertSame('', $outcome->value);
+    }
+
+    public function testNullableShortCircuitsAnExplicitNullBeforeTheCoercer(): void
+    {
+        $outcome = Rule::int()->nullable()->min(1)->apply(null, typed: true);
+
+        $this->assertFalse($outcome->failed());   // no coercion error, no verifier ran
+        $this->assertNull($outcome->value);
+    }
+
+    public function testANullableChainStillCoercesNonNullValues(): void
+    {
+        $this->assertSame(5, Rule::int()->nullable()->apply(5, typed: true)->value);
+        $this->assertTrue(Rule::int()->nullable()->apply('abc')->failed());
+    }
+
+    public function testRequiredAndNullableAreIndependent(): void
+    {
+        $rule = Rule::str()->required()->nullable();   // the key must exist, may be null
+
+        $this->assertNull($rule->apply(null, typed: true)->value);   // present null → null
+
+        $absent = $rule->applyAbsent();                              // absent → Missing
+        $this->assertNotNull($absent);
+        $this->assertInstanceOf(MissingInputException::class, $absent->failures[0]);
     }
 
     public function testSatisfyReceivesStringsUntouchedOnAStrChain(): void
