@@ -1,0 +1,7 @@
+# Revisions to skip in `git blame` — bulk, no-behaviour-change reformatting.
+# Enable locally with:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+# GitHub picks this file up automatically.
+
+# style: apply PHP-CS-Fixer to src/ and tests/
+2d72c8a52a424e80fbd9af1c92c77068df60ac4e
