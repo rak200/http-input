@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Rak200\HttpInput;
 
+use Closure;
 use DateTimeInterface;
 use LogicException;
 use Rak200\HttpInput\Exception\InputException;
@@ -16,9 +17,11 @@ use Rak200\Utils\Arr;
  * The accessor exposes the same chain API as Rule — exactly one coercer
  * opens the chain, then verifiers — and adds the terminals that decide a
  * failure's fate: {@see value()} throws the first, {@see orNull()} /
- * {@see orElse()} discard and fall back. Keys are looked up literally
- * (never as dot-paths), and the source is read with flat-request-bag
- * semantics: a bare coercer asserts the value's text format.
+ * {@see orElse()} discard and fall back, and {@see get()} records into the
+ * {@see Validator} the accessor came from (collect mode). Keys are looked
+ * up literally (never as dot-paths), and the source is read with
+ * flat-request-bag semantics: a bare coercer asserts the value's text
+ * format.
  *
  * Obtain one from {@see Input::from()} (or, in collect mode, from the
  * validator's `field()`); the accessor is immutable, so every chain call
@@ -34,13 +37,17 @@ final class Accessor
     /**
      * Binds $key (a literal key, never a dot-path) within $source. Prefer
      * the {@see Input::from()} facade; this constructor is its backing.
+     * $recorder is the {@see Validator}'s collector — set by `field()`, it
+     * is what makes {@see get()} record instead of throw.
      *
-     * @param array<array-key, mixed> $source
+     * @param array<array-key, mixed>                                 $source
+     * @param null|Closure(string, mixed, list<InputException>): void $recorder
      */
     public function __construct(
         private readonly array $source,
         private readonly string $key,
         private readonly ?Rule $rule = null,
+        private readonly ?Closure $recorder = null,
     ) {}
 
     /**
@@ -268,6 +275,31 @@ final class Accessor
     }
 
     /**
+     * The collect terminal: records every failure into the validator this
+     * accessor came from and returns the best-effort value (coerced, or
+     * null) instead of throwing. An absent key fails only when the chain
+     * says required(); otherwise the field is skipped and its value is null
+     * (a bare bool still yields its legitimate false). Only accessors from
+     * `Input::validate()->field()` carry a collector — calling get() on one
+     * from {@see Input::from()} is a programmer error.
+     */
+    public function get(): mixed
+    {
+        if ($this->recorder === null) {
+            throw new LogicException('get() is the collect terminal — obtain the accessor from Input::validate()->field().');
+        }
+        $outcome = $this->outcome();
+        if ($outcome === null) {   // absent and the chain has no opinion: the field is skipped
+            ($this->recorder)($this->key, null, []);
+
+            return null;
+        }
+        ($this->recorder)($this->key, $outcome->value, $outcome->failures);
+
+        return $outcome->value;
+    }
+
+    /**
      * Reads the key literally and applies the chain: the shared front half
      * of every terminal. Null means the key is absent and the chain has no
      * opinion ({@see Rule::applyAbsent()}) — the terminal decides.
@@ -306,7 +338,7 @@ final class Accessor
             throw new LogicException('The chain is already open — exactly one coercer opens a chain.');
         }
 
-        return new self($this->source, $this->key, $rule);
+        return new self($this->source, $this->key, $rule, $this->recorder);
     }
 
     /**
@@ -314,6 +346,6 @@ final class Accessor
      */
     private function with(Rule $rule): self
     {
-        return new self($this->source, $this->key, $rule);
+        return new self($this->source, $this->key, $rule, $this->recorder);
     }
 }

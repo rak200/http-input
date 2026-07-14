@@ -156,6 +156,13 @@ final class AccessorTest extends TestCase
         Input::from(['q' => 'x'], 'q')->int()->str();
     }
 
+    public function testGetOutsideCollectModeIsALogicException(): void
+    {
+        $this->expectException(LogicException::class);
+
+        Input::from(['q' => 'x'], 'q')->str()->get();   // from() carries no collector
+    }
+
     // --- chain behaviour through the accessor ----------------------------
 
     public function testCoerceOptsIntoLenientCoercion(): void

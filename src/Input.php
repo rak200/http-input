@@ -46,6 +46,19 @@ final class Input
     }
 
     /**
+     * Opens collect mode over a payload: `Input::validate($_POST)` returns a
+     * {@see Validator} whose `field()` accessors record failures into a
+     * shared bag via their `get()` terminal — the whole form is checked and
+     * every failure reported at once.
+     *
+     * @param array<array-key, mixed> $source
+     */
+    public static function validate(array $source): Validator
+    {
+        return new Validator($source);
+    }
+
+    /**
      * Reads $key from $source as a string (coerced via {@see Filter::toStr()}),
      * or $default when the key is absent or the value cannot be coerced.
      *
