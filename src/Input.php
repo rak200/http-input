@@ -25,7 +25,8 @@ use Rak200\Utils\Filter;
  *
  * @author rak200 <rak.ricardo@windowslive.com>
  */
-final class Input {
+final class Input
+{
     private function __construct() {}
 
     /**
@@ -34,10 +35,12 @@ final class Input {
      *
      * @param array<array-key, mixed> $source
      */
-    public static function str(array $source, string $key, ?string $default = null): ?string {
+    public static function str(array $source, string $key, ?string $default = null): ?string
+    {
         if (!Arr::has($source, $key)) {
             return $default;
         }
+
         return Filter::toStr($source[$key], $default);
     }
 
@@ -57,6 +60,7 @@ final class Input {
         ?int $max = null,
     ): ?int {
         $value = Arr::has($source, $key) ? Filter::toInt($source[$key], $default) : $default;
+
         return self::clampInt($value, $min, $max);
     }
 
@@ -85,6 +89,7 @@ final class Input {
         if ($max !== null && $value > $max) {
             $value = $max;
         }
+
         return $value;
     }
 
@@ -95,10 +100,12 @@ final class Input {
      *
      * @param array<array-key, mixed> $source
      */
-    public static function bool(array $source, string $key, ?bool $default = null): ?bool {
+    public static function bool(array $source, string $key, ?bool $default = null): ?bool
+    {
         if (!Arr::has($source, $key)) {
             return $default;
         }
+
         return Filter::toBool($source[$key], $default);
     }
 
@@ -107,14 +114,17 @@ final class Input {
      * when the key is absent or the value is not an array. No coercion is applied
      * to the elements.
      *
-     * @param array<array-key, mixed> $source
-     * @param array<array-key, mixed>|null $default
-     * @return array<array-key, mixed>|null
+     * @param array<array-key, mixed>      $source
+     * @param null|array<array-key, mixed> $default
+     *
+     * @return null|array<array-key, mixed>
      */
-    public static function array(array $source, string $key, ?array $default = null): ?array {
+    public static function array(array $source, string $key, ?array $default = null): ?array
+    {
         if (!Arr::has($source, $key) || !Arr::is($source[$key])) {
             return $default;
         }
+
         return $source[$key];
     }
 
@@ -123,7 +133,8 @@ final class Input {
      *
      * @param array<array-key, mixed> $source
      */
-    public static function has(array $source, string $key): bool {
+    public static function has(array $source, string $key): bool
+    {
         return Arr::has($source, $key);
     }
 
@@ -131,58 +142,67 @@ final class Input {
      * Returns $source unchanged — a readable way to name "the whole request bag".
      *
      * @param array<array-key, mixed> $source
+     *
      * @return array<array-key, mixed>
      */
-    public static function all(array $source): array {
+    public static function all(array $source): array
+    {
         return $source;
     }
 
     /**
      * Reads $key from `$_GET` as a string, or $default when absent/uncoercible.
      */
-    public static function get(string $key, ?string $default = null): ?string {
+    public static function get(string $key, ?string $default = null): ?string
+    {
         return self::str($_GET, $key, $default);
     }
 
     /**
      * Reads $key from `$_POST` as a string, or $default when absent/uncoercible.
      */
-    public static function post(string $key, ?string $default = null): ?string {
+    public static function post(string $key, ?string $default = null): ?string
+    {
         return self::str($_POST, $key, $default);
     }
 
     /**
      * Reads $key from `$_REQUEST` as a string, or $default when absent/uncoercible.
      */
-    public static function request(string $key, ?string $default = null): ?string {
+    public static function request(string $key, ?string $default = null): ?string
+    {
         return self::str($_REQUEST, $key, $default);
     }
 
     /**
      * Reads $key from `$_COOKIE` as a string, or $default when absent/uncoercible.
      */
-    public static function cookie(string $key, ?string $default = null): ?string {
+    public static function cookie(string $key, ?string $default = null): ?string
+    {
         return self::str($_COOKIE, $key, $default);
     }
 
     /**
      * Reads $key from `$_SERVER` as a string, or $default when absent/uncoercible.
      */
-    public static function server(string $key, ?string $default = null): ?string {
+    public static function server(string $key, ?string $default = null): ?string
+    {
         return self::str($_SERVER, $key, $default);
     }
 
     /**
      * Reads $key from `$_ENV` as a string, or $default when absent/uncoercible.
      */
-    public static function env(string $key, ?string $default = null): ?string {
+    public static function env(string $key, ?string $default = null): ?string
+    {
         return self::str($_ENV, $key, $default);
     }
 
     /**
      * Clamps $value to $min/$max when each is given; leaves a null result alone.
      */
-    private static function clampInt(?int $value, ?int $min, ?int $max): ?int {
+    private static function clampInt(?int $value, ?int $min, ?int $max): ?int
+    {
         if ($value === null) {
             return null;
         }
@@ -192,6 +212,7 @@ final class Input {
         if ($max !== null && $value > $max) {
             $value = $max;
         }
+
         return $value;
     }
 }
