@@ -23,6 +23,8 @@ input/
 │   ├── Accessor.php       # a Rule bound to (source, key) + the terminals
 │   ├── Validator.php      # collect mode: the shared error bag
 │   ├── Gate.php           # form-level cross-field gate (Validator::requires())
+│   ├── Schema.php         # JSON tree combinators: object() / listOf() (RFC 0014)
+│   ├── Result.php         # schema validation outcome: path-keyed bag + valid()
 │   ├── Outcome.php        # result of applying a Rule to one value
 │   ├── Constraint.php     # verifier contract for custom rules
 │   ├── Violation.php      # field-agnostic failure a Constraint returns

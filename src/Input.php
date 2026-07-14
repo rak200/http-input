@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Rak200\HttpInput;
 
+use JsonException;
+use Rak200\Utils\Json;
+
+use function file_get_contents;
+
 /**
  * The static entry facade to the constraint chain (RFC 0013).
  *
@@ -50,6 +55,25 @@ final class Input
     public static function validate(array $source): Validator
     {
         return new Validator($source);
+    }
+
+    /**
+     * Reads and validates a JSON request body (RFC 0014): the raw
+     * `php://input` is decoded via {@see Json::decode} and the tree is
+     * validated against $schema, failures keyed by the offending node's
+     * path. A malformed body throws JsonException — a 400 in its own right,
+     * deliberately distinct from schema errors. The pure counterpart over an
+     * already-decoded tree is {@see Schema::validate()}.
+     *
+     * @throws JsonException when the body is not valid JSON
+     */
+    public static function json(Schema $schema): Result
+    {
+        // Native read on purpose: File::read() guards with is_file(), which
+        // rejects the php://input stream.
+        $body = file_get_contents('php://input');
+
+        return $schema->validate(Json::decode($body === false ? '' : $body));
     }
 
     /**

@@ -142,4 +142,14 @@ final class RuleBoolTest extends TestCase
         $this->assertTrue($outcome->failed());
         $this->assertInstanceOf(MissingInputException::class, $outcome->failures[0]);
     }
+
+    public function testTheCheckboxConventionIsHtmlsNotJsons(): void
+    {
+        // In a typed tree an absent bool follows the normal presence rules.
+        $this->assertNull(Rule::bool()->applyAbsent(typed: true));
+
+        $required = Rule::bool()->required()->applyAbsent(typed: true);
+        $this->assertNotNull($required);
+        $this->assertInstanceOf(MissingInputException::class, $required->failures[0]);
+    }
 }

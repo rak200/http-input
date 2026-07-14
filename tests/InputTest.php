@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Rak200\HttpInput\Tests;
 
+use JsonException;
 use PHPUnit\Framework\Attributes\BackupGlobals;
 use PHPUnit\Framework\TestCase;
 use Rak200\HttpInput\Accessor;
 use Rak200\HttpInput\Input;
+use Rak200\HttpInput\Rule;
+use Rak200\HttpInput\Schema;
 
 /**
  * @internal
@@ -76,5 +79,14 @@ final class InputTest extends TestCase
         // Uniform with the chain: the caller picks the coercer and terminal.
         $this->assertTrue(Input::get('remember')->bool()->value());
         $this->assertFalse(Input::get('absent_checkbox')->bool()->value());
+    }
+
+    public function testJsonThrowsJsonExceptionOnAMalformedBody(): void
+    {
+        // Under CLI php://input is empty — not valid JSON, so the malformed
+        // body surfaces as a JsonException, distinct from schema errors.
+        $this->expectException(JsonException::class);
+
+        Input::json(Schema::object(['name' => Rule::str()]));
     }
 }

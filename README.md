@@ -81,6 +81,31 @@ $pw  = $form->field('password')->str()->required()->minLen(8)->get();
 $pwc = $form->field('password_confirm')->str()->required()->requires($pw)->sameAs($pw)->get();
 ```
 
+## JSON bodies
+
+`application/json` bodies are nested trees with already-typed leaves — a different shape from the flat bag. `Schema::object` and `Schema::listOf` compose the **same** rules into a schema; failures are keyed by the offending node's path:
+
+```php
+use Rak200\HttpInput\{Input, Rule, Schema};
+
+$schema = Schema::object([
+    'name'  => Rule::str()->required()->minLen(1),
+    'items' => Schema::listOf(Schema::object([
+        'sku' => Rule::str()->required(),
+        'qty' => Rule::int()->min(1),
+    ])),
+]);   // unknown keys rejected by default; ->allowUnknownKeys() opts out
+
+$result = Input::json($schema);        // reads php://input; malformed body → JsonException (400)
+// …or, purely: $result = $schema->validate($decoded);
+
+$result->fails();      // true
+$result->messages();   // ['items.0.qty' => ['must be at least 1']]
+$clean = $result->valid();   // the typed tree — or throws the first failure
+```
+
+A bare JSON leaf asserts the **decoded type** (`{"qty": "42"}` fails `Rule::int()` — a client bug, not something to silently accept); `->coerce()` opts into lossless conversion, same as on the flat bag.
+
 ## Failures are typed
 
 Every failure is an `InputException` — `MissingInputException` (key absent) or `InvalidInputException` (present but failed), with per-constraint subtypes such as `OutOfRangeInputException` — so callers can branch on the failure kind. The terminal decides each failure's fate: `value()` throws the first, `get()` records all, `orNull()`/`orElse()` discard.

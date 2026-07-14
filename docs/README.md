@@ -8,6 +8,7 @@ Per-class API reference with runnable examples. For installation and an overview
 | `Rule` | [rule.md](rule.md) | The free-standing constraint chain — coercers, verifiers, flags |
 | `Accessor` | [accessor.md](accessor.md) | A `Rule` bound to `(source, key)`, plus the terminals |
 | `Validator`, `Gate` | [validator.md](validator.md) | Collect mode — the shared error bag and the form-level cross-field gate |
+| `Schema`, `Result` | [schema.md](schema.md) | Structured JSON validation — object/list combinators, path-keyed failures |
 | `Constraint`, `Violation`, `Outcome` | [contracts.md](contracts.md) | The extension surface — custom constraints and the application result |
 | `Exception\*` | [exceptions.md](exceptions.md) | The `InputException` hierarchy and failure paths |
 

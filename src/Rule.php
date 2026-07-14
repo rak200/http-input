@@ -478,9 +478,7 @@ final class Rule
      */
     public function rule(Constraint $constraint): self
     {
-        return $this->step(
-            static fn (mixed $value): ?Violation => $constraint->check($value),
-        );
+        return $this->step($constraint->check(...));
     }
 
     /**
@@ -538,18 +536,21 @@ final class Rule
 
     /**
      * Answers for an absent key where the chain itself has an opinion:
-     * a required() chain yields the MissingInputException failure, and a
-     * bare bool chain yields false (an unchecked checkbox submits nothing,
-     * so absence is a legitimate false — RFC 0013). Returns null when the
-     * chain has no opinion and the terminal decides (value() raises Missing,
-     * orNull()/orElse() fall back, collect mode skips the field).
+     * a required() chain yields the MissingInputException failure, and — on
+     * the flat bag only — a bare bool chain yields false (an unchecked
+     * checkbox submits nothing, so absence is a legitimate false, RFC 0013).
+     * The checkbox convention is HTML's, not JSON's: in a typed tree
+     * ($typed = true) a bool's absence follows the normal presence rules
+     * (RFC 0014). Returns null when the chain has no opinion and the
+     * terminal decides (value() raises Missing, orNull()/orElse() fall
+     * back, collect mode skips the field).
      */
-    public function applyAbsent(): ?Outcome
+    public function applyAbsent(bool $typed = false): ?Outcome
     {
         if ($this->required) {
             return new Outcome(null, [new MissingInputException('is required')]);
         }
-        if ($this->type === self::BOOL) {
+        if (!$typed && $this->type === self::BOOL) {
             return new Outcome(false);
         }
 
@@ -875,6 +876,6 @@ final class Rule
      */
     private static function plural(string $unit, int $count): string
     {
-        return $count === 1 ? $unit : $unit . 's';
+        return $count === 1 ? $unit : "{$unit}s";
     }
 }
