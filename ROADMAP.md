@@ -59,6 +59,7 @@ recorded in `CHANGELOG.md`.
 |---|----------|------|------|
 | 1 | High | `src/Input.php` | Presence checked via dot-path `Arr::has()` but value read literally |
 | 2 | Low | `src/Input.php` | `float()` duplicates the clamp logic `int()` isolates in `clampInt()` |
+| 3 | Medium | `src/Accessor.php`, RFC 0013 | Thrown `InputException`s carry no key context — a multi-read `catch` cannot tell which parameter failed |
 
 ---
 
@@ -123,3 +124,38 @@ route through it. Behaviour-preserving refactor — no API change.
 
 > **0.2.0 note:** superseded by milestone 2 — the redesign removes clamping entirely
 > (`min`/`max` become rejecting verifiers). Resolve only if a `0.1.x` patch needs it.
+
+---
+
+### 3 — Bind the failing key to thrown `InputException`s (Medium)
+
+**Files:** `src/Accessor.php` (`value()`), `src/Exception/InputException.php`;
+needs an RFC 0013 amendment in the devr repository.
+
+**Problem.** RFC 0013 fixes failure messages as field-agnostic predicates
+(`'must be at least 1'`) so the collect bag can key them by field —
+`messages()` → `{field: [message]}`. The strict terminal `value()` throws that
+same field-less exception, so a `catch (InputException)` wrapping **several**
+reads (e.g. a controller turning failures into a 400 response) cannot tell
+*which* parameter failed:
+
+```php
+try {
+    $page = Input::from($_GET, 'page')->int()->min(1)->value();
+    $size = Input::from($_GET, 'size')->int()->max(100)->value();
+} catch (InputException $e) {
+    // $e->getMessage() is 'must be at least 1' — but for which key?
+}
+```
+
+**Proposed fix.** Bind the key at the terminal: a nullable `key` accessor on
+`InputException`, set by `value()` (and by the validator when recording) at the
+moment the failure is materialised. `getMessage()` stays field-less, so the
+`messages()` view and the RFC's message vocabulary are untouched. Rejected
+alternative: prefixing the key into the message — it would break the field-less
+`messages()` contract and duplicate the bag's keys.
+
+**Acceptance criteria.**
+- After a `value()` throw, the caught `InputException` exposes the failing key.
+- `getMessage()` output is unchanged; `messages()` output is unchanged.
+- RFC 0013 is amended in devr recording the key-binding decision.
