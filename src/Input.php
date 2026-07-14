@@ -23,11 +23,27 @@ use Rak200\Utils\Filter;
  * case. For a typed read from a superglobal, call the core directly with the
  * superglobal as the source.
  *
+ * {@see from()} is the entry to the 0.2.0 constraint chain (RFC 0013) — a
+ * strict/lenient read through an {@see Accessor} — which will replace this
+ * static API when the redesign completes.
+ *
  * @author rak200 <rak.ricardo@windowslive.com>
  */
 final class Input
 {
     private function __construct() {}
+
+    /**
+     * Binds `(source, key)` into an {@see Accessor} — the entry to the
+     * constraint chain: `Input::from($_GET, 'page')->int()->min(1)->value()`.
+     * The key is looked up literally (never as a dot-path).
+     *
+     * @param array<array-key, mixed> $source
+     */
+    public static function from(array $source, string $key): Accessor
+    {
+        return new Accessor($source, $key);
+    }
 
     /**
      * Reads $key from $source as a string (coerced via {@see Filter::toStr()}),
