@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/rak200/http-input/actions/workflows/ci.yml/badge.svg)](https://github.com/rak200/http-input/actions/workflows/ci.yml)
 [![Coverage](https://codecov.io/gh/rak200/http-input/graph/badge.svg)](https://codecov.io/gh/rak200/http-input)
+[![Mutation testing](https://img.shields.io/badge/Infection-min%20MSI%20100%25-brightgreen?logo=php&logoColor=white)](infection.json5)
 [![Latest tag](https://img.shields.io/github/v/tag/rak200/http-input?sort=semver)](https://github.com/rak200/http-input/tags)
 [![PHP](https://img.shields.io/badge/php-8.4%2B-777bb4?logo=php&logoColor=white)](https://www.php.net/)
 [![PHPStan](https://img.shields.io/badge/PHPStan-level%20max-brightgreen?logo=php&logoColor=white)](https://phpstan.org/)

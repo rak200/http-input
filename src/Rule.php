@@ -865,7 +865,7 @@ final class Rule
             if (!Str::is($value) && !Num::isInt($value) && !Num::isFloat($value)) {
                 return 'the allowed values';
             }
-            $rendered[] = (string) $value;
+            $rendered[] = $value;
         }
 
         return Str::join($rendered, ', ');

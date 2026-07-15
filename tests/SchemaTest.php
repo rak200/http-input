@@ -128,6 +128,15 @@ final class SchemaTest extends TestCase
         $this->assertSame(['address' => ['must be an object']], $result->messages());
     }
 
+    public function testAListWhereAnObjectIsExpectedIsMalformed(): void
+    {
+        $schema = Schema::object(['address' => Schema::object(['city' => Rule::str()])]);
+
+        $result = $schema->validate(['address' => ['a list', 'not an object']]);
+
+        $this->assertSame(['address' => ['must be an object']], $result->messages());
+    }
+
     public function testAMalformedListNodeIsReportedAtItsPath(): void
     {
         $schema = Schema::object(['tags' => Schema::listOf(Rule::str())]);

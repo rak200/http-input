@@ -143,8 +143,8 @@ final class Schema
         $failures = [];
         foreach ($shape as $key => $child) {
             if (!Arr::hasKey($node, $key)) {
-                $clean[$key] = null;
                 $absent = $child instanceof Rule ? $child->applyAbsent(typed: true) : null;
+                $clean[$key] = $absent?->value;
                 if ($absent !== null) {
                     foreach ($absent->failures as $failure) {
                         $failures[] = $failure->nest($key);

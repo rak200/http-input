@@ -53,8 +53,9 @@ General testing conventions are in the shared file. http-input specifics:
 
 - PHPUnit is configured via `phpunit.xml` with a single `Unit` suite.
 - The RFC 0013/0014 behaviour tables (numeric assert/coerce, bool vocabulary) are data providers 1:1; `Rule` tests are split per coercer (caster-style: `RuleIntTest`, `RuleBoolTest`, …).
-- Everything except the superglobal shortcuts is tested pure — literal source arrays in, values out. Shortcut tests mutate `$_GET` / `$_POST` / `$_REQUEST` / `$_COOKIE` / `$_SERVER` / `$_ENV` and carry `#[BackupGlobals(true)]` so the mutation never leaks across tests.
-- Test enums live in `tests/Fixture/`.
+- Everything except the superglobal shortcuts is tested pure — literal source arrays in, values out. Shortcut tests mutate `$_GET` / `$_POST` / `$_REQUEST` / `$_COOKIE` / `$_SERVER` / `$_ENV` and carry `#[BackupGlobals(true)]` so the mutation never leaks across tests. `Input::json()` is tested end-to-end by re-registering the `php` stream protocol with `tests/Fixture/PhpStreamMock.php` (always restored in a `finally`).
+- Test enums (and the stream mock) live in `tests/Fixture/`.
+- **Mutation testing** runs via Infection (`composer infection`, config in `infection.json5`; locally it needs `XDEBUG_MODE=coverage`, and on Windows the config pins `phpUnit.customPath` because autodetection fails there). Every escaped mutant must be *investigated and resolved* — a strengthened test, or deleting the dead code the mutant points at; `@infection-ignore-all` is a last resort that requires an inline justification (none currently in the codebase). CI runs Infection on the floor job.
 
 ## Versioning & releases
 

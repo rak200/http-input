@@ -124,6 +124,8 @@ final class RuleIntTest extends TestCase
 
         yield 'non-numeric text' => ['abc'];
 
+        yield 'overflowing numeric text' => ['1e999'];   // parses to INF: whole, but not lossless
+
         yield 'bool' => [true];
 
         yield 'null' => [null];

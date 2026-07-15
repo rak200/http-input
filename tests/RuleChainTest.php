@@ -139,6 +139,20 @@ final class RuleChainTest extends TestCase
         $this->assertFalse($lenient->apply('42.0')->failed());
     }
 
+    public function testTheFlagsReturnNewInstancesToo(): void
+    {
+        $base = Rule::int();
+        $required = $base->required();
+        $nullable = $base->nullable();
+
+        $this->assertNotSame($base, $required);
+        $this->assertNotSame($base, $nullable);
+        $this->assertNull($base->applyAbsent());                              // base unchanged by required()
+        $this->assertNotNull($required->applyAbsent());
+        $this->assertTrue($base->apply(null, typed: true)->failed());         // base unchanged by nullable()
+        $this->assertFalse($nullable->apply(null, typed: true)->failed());
+    }
+
     public function testARuleIsReusableAcrossValues(): void
     {
         $rule = Rule::str()->minLen(2);

@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2026-07-15
+
+### Added
+
+- Mutation testing via [Infection](https://infection.github.io) (`composer infection`, configured in `infection.json5`), wired into CI on the floor job. The suite was hardened against every escaped mutant: chain-flag immutability (`required()`/`nullable()`), single-case enums, overflowing numeric text under `int()->coerce()`, a JSON list where a schema object is expected, and `Input::json()` now tested end-to-end through a `php://` stream-wrapper mock (readable and unreadable bodies).
+- README mutation-testing badge (`Infection — min MSI 100%`), mirroring `infection.json5`.
+
+### Changed
+
+- `Schema` object nodes now propagate the absent-leaf `Outcome` value into the clean tree instead of discarding it (behaviour-identical today; honours the `applyAbsent()` contract).
+- `Rule` membership messages no longer cast scalars redundantly before `Str::join` (dead code surfaced by mutation testing).
+
 ## [0.2.0] - 2026-07-14
 
 The pre-1.0 redesign fixed by RFCs 0013/0014 (devr repository): reading, verification, and validation become one mechanism — a **constraint chain** in which exactly one coercer fixes the value's type, verifiers check it, and a terminal decides every failure's fate.
@@ -51,6 +63,7 @@ The pre-1.0 redesign fixed by RFCs 0013/0014 (devr repository): reading, verific
   - Pure core over a caller-supplied source array: `str`, `int` (with optional `min`/`max` clamping), `float` (with optional `min`/`max`), `bool` (HTML-form semantics via `Filter::toBool`), `array`, `has`, `all`. A missing key or uncoercible value returns the supplied default — no exceptions.
   - Convenience shortcuts that read a string from a superglobal: `get` (`$_GET`), `post` (`$_POST`), `request` (`$_REQUEST`), `cookie` (`$_COOKIE`), `server` (`$_SERVER`), `env` (`$_ENV`). Typed reads from superglobals use the core directly, e.g. `Input::int($_GET, 'page', 1)`.
 
+[0.2.1]: https://github.com/rak200/http-input/compare/0.2.0...0.2.1
 [0.2.0]: https://github.com/rak200/http-input/compare/0.1.1...0.2.0
 [0.1.1]: https://github.com/rak200/http-input/compare/0.1.0...0.1.1
 [0.1.0]: https://github.com/rak200/http-input/releases/tag/0.1.0

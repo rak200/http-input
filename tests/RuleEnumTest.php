@@ -8,8 +8,10 @@ use LogicException;
 use PHPUnit\Framework\TestCase;
 use Rak200\HttpInput\Rule;
 use Rak200\HttpInput\Tests\Fixture\Color;
+use Rak200\HttpInput\Tests\Fixture\NoCases;
 use Rak200\HttpInput\Tests\Fixture\Priority;
 use Rak200\HttpInput\Tests\Fixture\Size;
+use Rak200\HttpInput\Tests\Fixture\Solo;
 
 /**
  * @internal
@@ -65,10 +67,24 @@ final class RuleEnumTest extends TestCase
         );
     }
 
+    public function testASingleCaseEnumMatchesItsOnlyCase(): void
+    {
+        $this->assertSame(Solo::Only, Rule::enum(Solo::class)->apply('1')->value);
+    }
+
     public function testAPureEnumWithoutByNameIsALogicException(): void
     {
         $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('is a pure enum');
 
         Rule::enum(Color::class);
+    }
+
+    public function testAnEnumWithNoCasesIsALogicException(): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('has no cases');
+
+        Rule::enum(NoCases::class, byName: true);   // byName isolates the no-cases branch from the pure-enum one
     }
 }

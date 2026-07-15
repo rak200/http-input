@@ -11,6 +11,13 @@ use Rak200\HttpInput\Accessor;
 use Rak200\HttpInput\Input;
 use Rak200\HttpInput\Rule;
 use Rak200\HttpInput\Schema;
+use Rak200\HttpInput\Tests\Fixture\PhpStreamMock;
+
+use function restore_error_handler;
+use function set_error_handler;
+use function stream_wrapper_register;
+use function stream_wrapper_restore;
+use function stream_wrapper_unregister;
 
 /**
  * @internal
@@ -88,5 +95,42 @@ final class InputTest extends TestCase
         $this->expectException(JsonException::class);
 
         Input::json(Schema::object(['name' => Rule::str()]));
+    }
+
+    public function testJsonReadsAndValidatesTheRequestBody(): void
+    {
+        PhpStreamMock::$body = '{"name": "Ada", "age": 36}';
+        PhpStreamMock::$failToOpen = false;
+        stream_wrapper_unregister('php');
+        stream_wrapper_register('php', PhpStreamMock::class);
+
+        try {
+            $result = Input::json(Schema::object(['name' => Rule::str(), 'age' => Rule::int()]));
+        } finally {
+            stream_wrapper_restore('php');
+        }
+
+        $this->assertFalse($result->fails());
+        $this->assertSame(['name' => 'Ada', 'age' => 36], $result->values());
+    }
+
+    public function testJsonTreatsAnUnreadableBodyAsMalformed(): void
+    {
+        // file_get_contents() returning false is mapped to the empty body,
+        // so the failure mode stays JsonException — never a TypeError.
+        PhpStreamMock::$failToOpen = true;
+        stream_wrapper_unregister('php');
+        stream_wrapper_register('php', PhpStreamMock::class);
+        set_error_handler(static fn (): bool => true);   // swallow file_get_contents' E_WARNING
+
+        $this->expectException(JsonException::class);
+
+        try {
+            Input::json(Schema::object(['name' => Rule::str()]));
+        } finally {
+            restore_error_handler();
+            stream_wrapper_restore('php');
+            PhpStreamMock::$failToOpen = false;
+        }
     }
 }

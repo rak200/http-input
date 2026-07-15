@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use LogicException;
 use PHPUnit\Framework\TestCase;
 use Rak200\HttpInput\Accessor;
+use Rak200\HttpInput\Constraint;
 use Rak200\HttpInput\Exception\InvalidInputException;
 use Rak200\HttpInput\Exception\LengthInputException;
 use Rak200\HttpInput\Exception\MissingInputException;
@@ -15,6 +16,7 @@ use Rak200\HttpInput\Exception\OutOfRangeInputException;
 use Rak200\HttpInput\Input;
 use Rak200\HttpInput\Rule;
 use Rak200\HttpInput\Tests\Fixture\Priority;
+use Rak200\HttpInput\Violation;
 
 use function is_int;
 
@@ -30,6 +32,11 @@ final class AccessorTest extends TestCase
     public function testValueReturnsTheCoercedValue(): void
     {
         $this->assertSame(3, Input::from(['page' => '3'], 'page')->int()->min(1)->value());
+        $this->assertSame('hello', Input::from(['q' => 'hello'], 'q')->str()->value());
+        $this->assertSame(9.99, Input::from(['price' => '9.99'], 'price')->float()->value());
+        $this->assertSame(7, Input::from(['qty' => '7'], 'qty')->num()->value());
+        $this->assertSame(0.5, Input::from(['ratio' => '0.5'], 'ratio')->num()->value());   // num() preserves the presentation
+        $this->assertTrue(Input::from(['remember' => 'on'], 'remember')->bool()->value());
     }
 
     public function testValueThrowsMissingOnAnAbsentKey(): void
@@ -63,6 +70,13 @@ final class AccessorTest extends TestCase
         $this->expectException(OutOfRangeInputException::class);
 
         Input::from(['page' => '0'], 'page')->int()->min(1)->value();
+    }
+
+    public function testValueThrowsOutOfRangeAboveTheBound(): void
+    {
+        $this->expectException(OutOfRangeInputException::class);
+
+        Input::from(['page' => '11'], 'page')->int()->max(10)->value();
     }
 
     public function testAbsentBareBoolIsFalseEvenForValue(): void
@@ -195,6 +209,32 @@ final class AccessorTest extends TestCase
         );
     }
 
+    public function testLenBetweenBoundsTheLengthInclusively(): void
+    {
+        $this->assertSame('abc', Input::from(['slug' => 'abc'], 'slug')->str()->lenBetween(1, 3)->value());
+
+        $this->expectException(LengthInputException::class);
+        $this->expectExceptionMessage('must be between 1 and 3 characters');
+
+        Input::from(['slug' => 'abcd'], 'slug')->str()->lenBetween(1, 3)->value();
+    }
+
+    public function testUrlVerifiesTheFormat(): void
+    {
+        $link = 'https://example.com/x';
+
+        $this->assertSame($link, Input::from(['link' => $link], 'link')->str()->url()->value());
+        $this->assertNull(Input::from(['link' => 'not a url'], 'link')->str()->url()->orNull());
+    }
+
+    public function testInVerifiesMembership(): void
+    {
+        $sizes = ['s', 'm', 'l'];
+
+        $this->assertSame('m', Input::from(['size' => 'm'], 'size')->str()->in($sizes)->value());
+        $this->assertNull(Input::from(['size' => 'x'], 'size')->str()->in($sizes)->orNull());
+    }
+
     public function testCustomSatisfySeesTheCoercedValue(): void
     {
         $value = Input::from(['n' => '9'], 'n')
@@ -204,6 +244,19 @@ final class AccessorTest extends TestCase
         ;
 
         $this->assertSame(9, $value);
+    }
+
+    public function testCustomRuleConstraintSeesTheCoercedValue(): void
+    {
+        $even = new class implements Constraint {
+            public function check(mixed $value): ?Violation
+            {
+                return is_int($value) && $value % 2 === 0 ? null : new Violation('must be even');
+            }
+        };
+
+        $this->assertSame(8, Input::from(['n' => '8'], 'n')->int()->rule($even)->value());
+        $this->assertNull(Input::from(['n' => '9'], 'n')->int()->rule($even)->orNull());
     }
 
     public function testDomainCoercersOpenTheChainThroughTheAccessor(): void
@@ -224,6 +277,14 @@ final class AccessorTest extends TestCase
             1736899200,
             Input::from(['at' => '1736899200'], 'at')->timestamp()->value(),
         );
+
+        $opens = Input::from(['opens' => '09:30:00'], 'opens')->time()->value();
+        $this->assertInstanceOf(DateTimeImmutable::class, $opens);
+        $this->assertSame('09:30:00', $opens->format('H:i:s'));
+
+        $seen = Input::from(['seen' => '2026-01-15 09:30:00'], 'seen')->datetime()->value();
+        $this->assertInstanceOf(DateTimeImmutable::class, $seen);
+        $this->assertSame('2026-01-15 09:30:00', $seen->format('Y-m-d H:i:s'));
     }
 
     public function testNullableAcceptsAPresentNullThroughTheAccessor(): void
