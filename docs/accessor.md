@@ -32,7 +32,7 @@ Input::from($_GET, 'page')->int()->min(1);       // an accessor, chain open, no 
 
 ## `value`
 
-The strict terminal: the coerced value, or the **first** failure thrown. An absent key always raises `MissingInputException` — leniency is a terminal, not a default — except a bare `bool`, whose vocabulary makes absence a legitimate `false`.
+The strict terminal: the coerced value, or the **first** failure thrown. An absent key always raises `MissingInputException` — leniency is a terminal, not a default — except a bare `bool`, whose vocabulary makes absence a legitimate `false`. The thrown failure carries the field key — `$e->key()` names which read failed (see [Exceptions](exceptions.md#key--forkey)).
 
 ```php
 Input::from(['page' => '3'], 'page')->int()->min(1)->value();   // 3

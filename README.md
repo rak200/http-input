@@ -119,7 +119,7 @@ A bare JSON leaf asserts the **decoded type** (`{"qty": "42"}` fails `Rule::int(
 
 ## Failures are typed
 
-Every failure is an `InputException` — `MissingInputException` (key absent) or `InvalidInputException` (present but failed), with per-constraint subtypes such as `OutOfRangeInputException` — so callers can branch on the failure kind. The terminal decides each failure's fate: `value()` throws the first, `get()` records all, `orNull()`/`orElse()` discard.
+Every failure is an `InputException` — `MissingInputException` (key absent) or `InvalidInputException` (present but failed), with per-constraint subtypes such as `OutOfRangeInputException` — so callers can branch on the failure kind. The terminal decides each failure's fate: `value()` throws the first, `get()` records all, `orNull()`/`orElse()` discard. Each failure also carries its field key — `$e->key()` returns the same key the collect bag files it under (`page`, `tags.0`), so a `catch` around several reads can tell which parameter failed, while `getMessage()` stays field-less.
 
 ## Superglobal shortcuts
 

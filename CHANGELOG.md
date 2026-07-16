@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-07-16
+
+### Added
+
+- **Field-keyed failures** — every `InputException` now carries the field key that failed, bound at the terminal that materialises it: a nullable `InputException::key()`, set by `value()`, by the `Validator` when it records, and by a `Schema` walk. `key()` returns the same key the collect bag files the failure under (`page`, `tags.0`, `items.0.qty`), so a `catch (InputException)` wrapping several strict reads can finally tell *which* parameter failed — throw mode and collect mode now agree on a failure's identity. `forKey()` performs the binding; `keyUnder()` composes a parent key with the relative `at()` path. `getMessage()` stays field-less and `messages()` is unchanged — `key()` is purely additive. Resolves the follow-up surfaced by the 0.2.x release reviews; recorded as the field-keyed-failures amendment to RFC 0013 (devr).
+
 ## [0.2.2] - 2026-07-15
 
 Internal quality and tooling only — no public API or behaviour change.
@@ -72,6 +78,7 @@ The pre-1.0 redesign fixed by RFCs 0013/0014 (devr repository): reading, verific
   - Pure core over a caller-supplied source array: `str`, `int` (with optional `min`/`max` clamping), `float` (with optional `min`/`max`), `bool` (HTML-form semantics via `Filter::toBool`), `array`, `has`, `all`. A missing key or uncoercible value returns the supplied default — no exceptions.
   - Convenience shortcuts that read a string from a superglobal: `get` (`$_GET`), `post` (`$_POST`), `request` (`$_REQUEST`), `cookie` (`$_COOKIE`), `server` (`$_SERVER`), `env` (`$_ENV`). Typed reads from superglobals use the core directly, e.g. `Input::int($_GET, 'page', 1)`.
 
+[0.3.0]: https://github.com/rak200/http-input/compare/0.2.2...0.3.0
 [0.2.2]: https://github.com/rak200/http-input/compare/0.2.1...0.2.2
 [0.2.1]: https://github.com/rak200/http-input/compare/0.2.0...0.2.1
 [0.2.0]: https://github.com/rak200/http-input/compare/0.1.1...0.2.0

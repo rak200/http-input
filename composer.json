@@ -1,7 +1,7 @@
 {
     "name": "rak200/http-input",
     "description": "Strict, typed reading and validation of HTTP request data (GET/POST/cookies/server/JSON bodies) for PHP 8.4+. A constraint chain with three terminals — throw, fall back, or collect — over any source array. Built on rak200/utils.",
-    "version": "0.2.2",
+    "version": "0.3.0",
     "type": "library",
     "license": "MIT",
     "keywords": ["input", "request", "http", "get", "post", "validation", "json", "php84"],

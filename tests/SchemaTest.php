@@ -60,6 +60,25 @@ final class SchemaTest extends TestCase
         $this->assertInstanceOf(MissingInputException::class, $result->errors()['address.city'][0]);
     }
 
+    public function testFailuresCarryTheirPathAsKeyAndSurviveValid(): void
+    {
+        $result = self::rfcSchema()->validate([
+            'name' => 'Ada',
+            'email' => 'ada@example.com',
+            'address' => ['city' => 'London', 'country' => 'UK'],
+            'items' => [['sku' => 'A-1', 'qty' => 0]],   // the only failure: qty below min
+        ]);
+
+        $this->assertSame('items.0.qty', $result->errors()['items.0.qty'][0]->key());
+
+        try {
+            $result->valid();
+            $this->fail('valid() should have thrown');
+        } catch (InvalidInputException $exception) {
+            $this->assertSame('items.0.qty', $exception->key());   // the throw terminal carries it too
+        }
+    }
+
     public function testBareLeavesAssertTheDecodedType(): void
     {
         $schema = Schema::object(['qty' => Rule::int()]);
@@ -151,6 +170,7 @@ final class SchemaTest extends TestCase
         $result = Schema::object(['name' => Rule::str()])->validate('scalar');
 
         $this->assertSame(['' => ['must be an object']], $result->messages());
+        $this->assertSame('', $result->errors()[''][0]->key());   // the empty path is its key
         $this->assertSame([], $result->values());
     }
 

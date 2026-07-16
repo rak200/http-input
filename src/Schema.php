@@ -99,14 +99,17 @@ final class Schema
      * The pure core: validates an already-decoded tree against this schema
      * and returns a {@see Result} — failures keyed by the offending node's
      * path, plus the clean (typed, structured) tree. A malformed root is
-     * keyed by the empty path.
+     * keyed by the empty path. Each failure carries that path as its key
+     * ({@see InputException::key()}), so it stays self-describing once thrown
+     * by {@see Result::valid()}.
      */
     public function validate(mixed $tree): Result
     {
         [$values, $failures] = $this->apply($tree);
         $errors = [];
         foreach ($failures as $failure) {
-            $errors[$failure->at() ?? ''][] = $failure;
+            $key = $failure->at() ?? '';
+            $errors[$key][] = $failure->forKey($key);
         }
 
         return new Result($errors, Arr::is($values) ? $values : []);

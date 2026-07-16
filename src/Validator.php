@@ -126,7 +126,8 @@ final class Validator
      * The collector behind `field()->...->get()`: stores the field's
      * best-effort value and appends its failures to the bag. A failure that
      * carries a relative path ({@see InputException::at()} — a listOf
-     * element) is keyed by it: `tags.0`.
+     * element) is keyed by it: `tags.0`. Each failure is bound to that same
+     * key ({@see InputException::forKey()}), so it carries its own field.
      *
      * @param list<InputException> $failures
      */
@@ -134,17 +135,17 @@ final class Validator
     {
         $this->values[$key] = $value;
         foreach ($failures as $failure) {
-            $at = $failure->at();
-            $this->errors[$at === null ? $key : "{$key}.{$at}"][] = $failure;
+            $fullKey = $failure->keyUnder($key);
+            $this->errors[$fullKey][] = $failure->forKey($fullKey);
         }
     }
 
     /**
      * The collector behind {@see Gate::assert()}: appends one failure to
-     * the bag without touching the field's value.
+     * the bag, bound to $field, without touching the field's value.
      */
     private function recordError(string $key, InputException $failure): void
     {
-        $this->errors[$key][] = $failure;
+        $this->errors[$key][] = $failure->forKey($key);
     }
 }

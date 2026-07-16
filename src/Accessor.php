@@ -292,16 +292,20 @@ final class Accessor
      * The strict terminal: returns the coerced value or throws the first
      * failure. An absent key always raises MissingInputException — leniency
      * is a terminal ({@see orNull()} / {@see orElse()}) — except a bare
-     * bool chain, whose vocabulary makes absence a legitimate false.
+     * bool chain, whose vocabulary makes absence a legitimate false. The
+     * thrown failure carries the field key ({@see InputException::key()}), so
+     * a catch wrapping several reads can tell which parameter failed.
      */
     public function value(): mixed
     {
         $outcome = $this->outcome();
         if ($outcome === null) {
-            throw new MissingInputException('is required');
+            throw new MissingInputException('is required')->forKey($this->key);
         }
         if ($outcome->failed()) {
-            throw $outcome->failures[0];
+            $failure = $outcome->failures[0];
+
+            throw $failure->forKey($failure->keyUnder($this->key));
         }
 
         return $outcome->value;

@@ -107,6 +107,6 @@ $result->values();     // the clean, fully typed tree
 $result->valid();      // the clean tree — or throws the first InputException
 ```
 
-Both of RFC 0013's terminal styles carry over: collect (read the bag) and throw (`valid()`).
+Both of RFC 0013's terminal styles carry over: collect (read the bag) and throw (`valid()`). Every failure carries its path as its key — `$e->key()` returns the same path the bag uses (`items.0.qty`), so a failure thrown by `valid()` stays self-describing (see [Exceptions](exceptions.md#key--forkey)).
 
 [↑ Back to top](#schema--result)

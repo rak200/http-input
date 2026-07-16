@@ -50,7 +50,7 @@ $form->messages();   // ['email' => ['must be a valid e-mail'], 'name' => ['is r
 $form->values();     // ['email' => 'nope', 'name' => null, 'tags' => ['s', 'x']]
 ```
 
-- `errors()` — the structured bag: every failure keyed by field (or by element path), multiple failures per field in declaration order.
+- `errors()` — the structured bag: every failure keyed by field (or by element path), multiple failures per field in declaration order; each exception also carries that key via `key()` (see [Exceptions](exceptions.md#key--forkey)).
 - `messages()` — the flat string view of the same bag.
 - `values()` — the clean payload: one entry per declared field with its best-effort value; meant to be read once `fails()` says nothing was recorded.
 

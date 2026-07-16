@@ -98,6 +98,37 @@ final class AccessorTest extends TestCase
         Input::from(['q' => null], 'q')->str()->value();
     }
 
+    public function testAThrownFailureCarriesTheFieldKey(): void
+    {
+        try {
+            Input::from(['page' => '0'], 'page')->int()->min(1)->value();
+            $this->fail('value() should have thrown');
+        } catch (OutOfRangeInputException $exception) {
+            $this->assertSame('page', $exception->key());
+            $this->assertSame('must be at least 1', $exception->getMessage());   // the message stays field-less
+        }
+    }
+
+    public function testAThrownMissingCarriesTheFieldKey(): void
+    {
+        try {
+            Input::from([], 'page')->int()->value();
+            $this->fail('value() should have thrown');
+        } catch (MissingInputException $exception) {
+            $this->assertSame('page', $exception->key());
+        }
+    }
+
+    public function testAThrownNestedFailureCarriesTheCompositeKey(): void
+    {
+        try {
+            Input::from(['tags' => ['1', '0']], 'tags')->listOf(Rule::int()->min(1))->value();
+            $this->fail('value() should have thrown');
+        } catch (OutOfRangeInputException $exception) {
+            $this->assertSame('tags.1', $exception->key());   // == the collect bag key
+        }
+    }
+
     // --- orNull() / orElse(): the lenient terminals ----------------------
 
     public function testOrNullReturnsTheValueWhenTheChainPasses(): void

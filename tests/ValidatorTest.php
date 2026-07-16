@@ -254,4 +254,24 @@ final class ValidatorTest extends TestCase
         $this->assertInstanceOf(MismatchInputException::class, $form->errors()['pwc'][0]);
         $this->assertSame(['must match', 'and the form-level rule too'], $form->messages()['pwc']);
     }
+
+    public function testRecordedFailuresCarryTheirBagKey(): void
+    {
+        $form = Input::validate(['age' => '150', 'tags' => ['s', 'x']]);
+
+        $form->field('age')->int()->between(18, 120)->get();
+        $form->field('tags')->listOf(Rule::str()->in(['s', 'm', 'l']))->get();
+
+        $this->assertSame('age', $form->errors()['age'][0]->key());
+        $this->assertSame('tags.1', $form->errors()['tags.1'][0]->key());   // composite, == the bag key
+    }
+
+    public function testAFormLevelAssertBindsTheFieldKey(): void
+    {
+        $form = Input::validate([]);
+
+        $form->requires()->assert('total', false, 'must not exceed the cart limit');
+
+        $this->assertSame('total', $form->errors()['total'][0]->key());
+    }
 }

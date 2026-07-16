@@ -20,11 +20,18 @@ use RuntimeException;
  * {@see at()} / {@see nest()}; the validator keys the error bag with it
  * (`tags.0`, `items.0.qty`).
  *
+ * The terminal that materialises a failure binds its **field key** — the
+ * absolute, bag-style identifier (`page`, `tags.0`) — via {@see forKey()};
+ * {@see key()} reads it back, so a `catch` wrapping several reads can tell
+ * which parameter failed. The message itself stays field-agnostic.
+ *
  * @author rak200 <rak.ricardo@windowslive.com>
  */
 abstract class InputException extends RuntimeException
 {
     private ?string $at = null;
+
+    private ?string $key = null;
 
     /**
      * The path of the offending node relative to the field (`'0'`,
@@ -45,5 +52,40 @@ abstract class InputException extends RuntimeException
         $this->at = $this->at === null ? $segment : $segment . '.' . $this->at;
 
         return $this;
+    }
+
+    /**
+     * The field key bound at the terminal — the same key the collect bag
+     * files this failure under (`page`, `tags.0`), or null before a terminal
+     * binds it (a free-standing {@see Rule} failure). `getMessage()` stays
+     * field-less; this is where the field lives.
+     */
+    public function key(): ?string
+    {
+        return $this->key;
+    }
+
+    /**
+     * Binds $key as this failure's field key — called by the terminal that
+     * materialises the failure (`value()`, the validator, a schema walk) the
+     * moment it decides the failure's fate. Returns the failure, so a throw
+     * site can bind inline.
+     */
+    public function forKey(string $key): static
+    {
+        $this->key = $key;
+
+        return $this;
+    }
+
+    /**
+     * The bag-style key this failure takes under $parent: `$parent` for the
+     * field's own failure, `"{$parent}.{$at}"` when it carries a relative
+     * path ({@see at()} — a `listOf` element). The one place the top-level
+     * key and the nested path compose.
+     */
+    public function keyUnder(string $parent): string
+    {
+        return $this->at === null ? $parent : "{$parent}.{$this->at}";
     }
 }
