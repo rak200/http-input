@@ -57,18 +57,7 @@ final class Result
      */
     public function messages(): array
     {
-        // Arr::map's generic return (array<K, TResult>) erases the inner
-        // list-ness; mapping never disturbs a list's 0..n-1 keys.
-        /** @var array<string, list<string>> $messages */
-        $messages = Arr::map(
-            $this->errors,
-            static fn (array $failures): array => Arr::map(
-                $failures,
-                static fn (InputException $failure): string => $failure->getMessage(),
-            ),
-        );
-
-        return $messages;
+        return Arr::map($this->errors, self::failureMessages(...));
     }
 
     /**
@@ -96,5 +85,18 @@ final class Result
         }
 
         return $this->values;
+    }
+
+    /**
+     * @param list<InputException> $failures
+     *
+     * @return list<string>
+     */
+    private static function failureMessages(array $failures): array
+    {
+        return Arr::map(
+            $failures,
+            static fn (InputException $failure): string => $failure->getMessage(),
+        );
     }
 }

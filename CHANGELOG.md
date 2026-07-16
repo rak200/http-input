@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2026-07-15
+
+Internal quality and tooling only — no public API or behaviour change.
+
+### Changed
+
+- `Result::messages()` and `Validator::messages()` drop their `@var` type-suppressions: the nested `Arr::map` that stringifies each failure list is extracted into a private `failureMessages()` helper, passed as a first-class callable. A named callable's declared `list<string>` return survives PHPStan's template inference where an inline closure's is generalised away — so the `array<string, list<string>>` return type is now proven end-to-end at PHPStan level max, with no suppression. Public signatures and runtime behaviour are unchanged.
+- CI: bumped `codecov/codecov-action` to v7 (Node 24).
+
 ## [0.2.1] - 2026-07-15
 
 ### Added
@@ -63,6 +72,7 @@ The pre-1.0 redesign fixed by RFCs 0013/0014 (devr repository): reading, verific
   - Pure core over a caller-supplied source array: `str`, `int` (with optional `min`/`max` clamping), `float` (with optional `min`/`max`), `bool` (HTML-form semantics via `Filter::toBool`), `array`, `has`, `all`. A missing key or uncoercible value returns the supplied default — no exceptions.
   - Convenience shortcuts that read a string from a superglobal: `get` (`$_GET`), `post` (`$_POST`), `request` (`$_REQUEST`), `cookie` (`$_COOKIE`), `server` (`$_SERVER`), `env` (`$_ENV`). Typed reads from superglobals use the core directly, e.g. `Input::int($_GET, 'page', 1)`.
 
+[0.2.2]: https://github.com/rak200/http-input/compare/0.2.1...0.2.2
 [0.2.1]: https://github.com/rak200/http-input/compare/0.2.0...0.2.1
 [0.2.0]: https://github.com/rak200/http-input/compare/0.1.1...0.2.0
 [0.1.1]: https://github.com/rak200/http-input/compare/0.1.0...0.1.1
