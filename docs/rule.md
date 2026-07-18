@@ -15,6 +15,7 @@ use Rak200\HttpInput\Rule;
 - [`date` / `time` / `datetime` / `timestamp`](#date--time--datetime--timestamp)
 - [`enum`](#enum)
 - [`listOf`](#listof)
+- [`json`](#json)
 - [`required` / `nullable`](#required--nullable)
 - [`min` / `max` / `between`](#min--max--between)
 - [`minLen` / `maxLen` / `lenBetween`](#minlen--maxlen--lenbetween)
@@ -130,6 +131,32 @@ Rule::listOf(Rule::str()->in(['s', 'm']))->apply(['s', 'x'])
 Rule::listOf(Rule::str())->apply('abc')->failed();            // true — 'must be a list'
 Rule::listOf(Rule::str())->minLen(1)->apply([])
     ->failures[0]->getMessage();                              // 'must have at least 1 item'
+```
+
+[↑ Back to top](#rule)
+
+---
+
+## `json`
+
+The value is a string carrying a whole **embedded JSON document** — a form field submitting a structured payload — decoded via `Json::decode`. A domain coercer with a string carrier: bare/`coerce()` and flat-bag/typed-tree make no difference. Bare, any valid root passes as the decoded value (a `null` root is a successful null); a malformed document is an ordinary input failure — deliberately unlike [`Input::json()`](input.md#json), where a malformed *body* throws `JsonException` (a 400 in its own right).
+
+```php
+Rule::json()->apply('{"a": 1}')->value;      // ['a' => 1]
+Rule::json()->apply('[1, 2, 3]')->value;     // [1, 2, 3]
+Rule::json()->apply('{oops')->failures[0]->getMessage();   // 'must be valid JSON'
+```
+
+With a [`Schema`](schema.md), the decoded tree is validated against it and the chain yields the **clean tree**; schema failures carry the offending node's path relative to the field, so the collect bag keys them `payload.items.0.qty` — the whole form, flat fields and embedded JSON alike, in one `Input::validate()` flow. Like a `listOf`'s element failures, they do not block the later verifiers.
+
+```php
+$rule = Rule::json(Schema::object([
+    'items' => Schema::listOf(Schema::object(['qty' => Rule::int()->min(1)])),
+]));
+
+$rule->apply('{"items": [{"qty": 2}]}')->value;     // ['items' => [['qty' => 2]]]
+$rule->apply('{"items": [{"qty": 0}]}')
+    ->failures[0]->at();                            // 'items.0.qty'
 ```
 
 [↑ Back to top](#rule)

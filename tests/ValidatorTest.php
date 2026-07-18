@@ -12,6 +12,7 @@ use Rak200\HttpInput\Exception\MissingInputException;
 use Rak200\HttpInput\Exception\OutOfRangeInputException;
 use Rak200\HttpInput\Input;
 use Rak200\HttpInput\Rule;
+use Rak200\HttpInput\Schema;
 use Rak200\HttpInput\Validator;
 
 /**
@@ -233,6 +234,54 @@ final class ValidatorTest extends TestCase
         $this->assertSame(['tags.1' => ['must be one of s, m, l']], $form->messages());
         $this->assertSame(['s', 'x', 'm'], $tags);
         $this->assertSame(['tags' => ['s', 'x', 'm']], $form->values());
+    }
+
+    public function testAJsonFieldJoinsTheCollectFlow(): void
+    {
+        $form = Input::validate([
+            'name' => 'Ada',
+            'payload' => '{"items": [{"qty": 1}, {"qty": 0}], "note": 7}',
+        ]);
+
+        $name = $form->field('name')->str()->required()->get();
+        $payload = $form->field('payload')->json(Schema::object([
+            'items' => Schema::listOf(Schema::object(['qty' => Rule::int()->min(1)])),
+            'note' => Rule::str(),
+        ]))->required()->get();
+
+        $this->assertTrue($form->fails());
+        $this->assertSame(
+            [
+                'payload.items.1.qty' => ['must be at least 1'],
+                'payload.note' => ['must be a string'],
+            ],
+            $form->messages(),
+        );
+        $this->assertSame('payload.items.1.qty', $form->errors()['payload.items.1.qty'][0]->key());
+        $this->assertSame(['items' => [['qty' => 1], ['qty' => 0]], 'note' => null], $payload);
+        $this->assertSame('Ada', $name);
+        $this->assertSame($payload, $form->values()['payload']);   // best-effort tree survives
+    }
+
+    public function testAMalformedJsonFieldRecordsOneErrorUnderItsOwnKey(): void
+    {
+        $form = Input::validate(['payload' => '{oops']);
+
+        $payload = $form->field('payload')->json(Schema::object(['a' => Rule::int()]))->get();
+
+        $this->assertNull($payload);
+        $this->assertSame(['payload' => ['must be valid JSON']], $form->messages());
+        $this->assertSame(['payload' => null], $form->values());
+    }
+
+    public function testACleanJsonFieldLandsTypedInTheValues(): void
+    {
+        $form = Input::validate(['payload' => '{"qty": 2}']);
+
+        $form->field('payload')->json(Schema::object(['qty' => Rule::int()->min(1)]))->get();
+
+        $this->assertFalse($form->fails());
+        $this->assertSame(['payload' => ['qty' => 2]], $form->values());
     }
 
     public function testAnAbsentRequiredCheckboxArrayIsMissingNotEmpty(): void

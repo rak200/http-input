@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-07-17
+
+### Added
+
+- **The `json` coercer** — `Rule::json(?Schema $schema = null)` / `Accessor::json(...)` reads a **form field carrying an embedded JSON document**, so it joins the same `Input::validate()` collect flow as the flat fields (no more decode-by-hand plus a second bag to merge). A domain coercer with a string carrier (`coerce()` and typed-tree mode are inert): bare, any valid root (RFC 8259) passes as the decoded value — a `null` root is a successful null; with a `Schema`, the decoded tree is validated *inside* the chain and yields the clean tree, schema failures keeping their relative path so the bag keys them `payload.items.0.qty` (and, like `listOf` element failures, they don't block later verifiers). A malformed document is an ordinary field failure (`'must be valid JSON'`) — deliberately unlike `Input::json()`, where a malformed *body* throws `JsonException`. Backed by the `@internal` `Schema::outcome()` bridge (one node in, an `Outcome` out); recorded as the json-coercer amendment to RFC 0014 (devr).
+
 ## [0.3.0] - 2026-07-16
 
 ### Added
@@ -78,6 +84,7 @@ The pre-1.0 redesign fixed by RFCs 0013/0014 (devr repository): reading, verific
   - Pure core over a caller-supplied source array: `str`, `int` (with optional `min`/`max` clamping), `float` (with optional `min`/`max`), `bool` (HTML-form semantics via `Filter::toBool`), `array`, `has`, `all`. A missing key or uncoercible value returns the supplied default — no exceptions.
   - Convenience shortcuts that read a string from a superglobal: `get` (`$_GET`), `post` (`$_POST`), `request` (`$_REQUEST`), `cookie` (`$_COOKIE`), `server` (`$_SERVER`), `env` (`$_ENV`). Typed reads from superglobals use the core directly, e.g. `Input::int($_GET, 'page', 1)`.
 
+[0.4.0]: https://github.com/rak200/http-input/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/rak200/http-input/compare/0.2.2...0.3.0
 [0.2.2]: https://github.com/rak200/http-input/compare/0.2.1...0.2.2
 [0.2.1]: https://github.com/rak200/http-input/compare/0.2.0...0.2.1

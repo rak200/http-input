@@ -14,6 +14,7 @@ use Rak200\HttpInput\{Input, Rule, Schema};
 - [`allowUnknownKeys`](#allowunknownkeys)
 - [`validate` — the pure core](#validate--the-pure-core)
 - [`Input::json` — the request-body shortcut](#inputjson--the-request-body-shortcut)
+- [`Rule::json` — the embedded-document field](#rulejson--the-embedded-document-field)
 - [`Result`](#result)
 
 ---
@@ -90,6 +91,24 @@ try {
     // malformed body → 400, before any schema concern
 }
 ```
+
+[↑ Back to top](#schema--result)
+
+---
+
+## `Rule::json` — the embedded-document field
+
+The third entry point: a **form field** whose value is a string carrying a whole JSON document. [`Rule::json($schema)`](rule.md#json) decodes it and runs the tree through the schema *inside* the chain, so the field joins the same `Input::validate()` collect flow as the flat fields — no separate validation to merge. Here a malformed document is an ordinary field failure (`'must be valid JSON'` in the bag), not the body-level `JsonException`.
+
+```php
+$form = Input::validate($_POST);
+$name    = $form->field('name')->str()->required()->get();
+$payload = $form->field('payload')->json($schema)->required()->get();
+
+$form->messages();   // ['payload.items.0.qty' => ['must be at least 1'], ...]
+```
+
+(`Schema::outcome()` is the `@internal` bridge behind this — one node in, an [`Outcome`](contracts.md#outcome) out, failures still relative and unbound; user code reads trees through `validate()`.)
 
 [↑ Back to top](#schema--result)
 

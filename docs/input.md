@@ -52,7 +52,7 @@ if ($form->fails()) {
 
 ## `json`
 
-Reads the raw request body (`php://input`), decodes it (`Json::decode` forces `JSON_THROW_ON_ERROR`), and validates the tree against a [`Schema`](schema.md), returning a [`Result`](schema.md#result) with path-keyed failures. A malformed body throws `JsonException` — a 400 in its own right, deliberately distinct from schema errors. The pure equivalent is `$schema->validate($decoded)`.
+Reads the raw request body (`php://input`), decodes it (`Json::decode` forces `JSON_THROW_ON_ERROR`), and validates the tree against a [`Schema`](schema.md), returning a [`Result`](schema.md#result) with path-keyed failures. A malformed body throws `JsonException` — a 400 in its own right, deliberately distinct from schema errors. The pure equivalent is `$schema->validate($decoded)`; for a *form field* carrying an embedded JSON document, use the [`json` coercer](rule.md#json) instead — there a malformed document is an ordinary field failure.
 
 ```php
 $schema = Schema::object(['qty' => Rule::int()->min(1)]);   // combinators: schema.md

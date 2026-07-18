@@ -233,6 +233,29 @@ final class SchemaTest extends TestCase
         $this->assertSame(['must be at least 1'], $result->messages()['orders.0.lines.1.qty']);
     }
 
+    public function testOutcomeIsTheJsonBridgeWithRelativeUnboundFailures(): void
+    {
+        $outcome = Schema::object(['qty' => Rule::int()->min(1)])->outcome(['qty' => 0]);
+
+        $this->assertSame(['qty' => 0], $outcome->value);
+        $this->assertCount(1, $outcome->failures);
+        $this->assertSame('qty', $outcome->failures[0]->at());     // relative path, like any chain failure
+        $this->assertNull($outcome->failures[0]->key());           // no field key until a terminal binds one
+    }
+
+    public function testAJsonLeafReadsAnEmbeddedDocumentInsideATree(): void
+    {
+        $schema = Schema::object(['meta' => Rule::json(Schema::object(['v' => Rule::int()]))]);
+
+        $result = $schema->validate(['meta' => '{"v": 1}']);
+
+        $this->assertFalse($result->fails());
+        $this->assertSame(['meta' => ['v' => 1]], $result->values());
+
+        $failing = $schema->validate(['meta' => '{"v": "x"}']);
+        $this->assertSame(['meta.v' => ['must be an integer']], $failing->messages());
+    }
+
     private static function rfcSchema(): Schema
     {
         return Schema::object([

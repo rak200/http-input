@@ -116,6 +116,21 @@ final class Schema
     }
 
     /**
+     * One node in, an {@see Outcome} out: the clean value plus the failures,
+     * their paths still relative to this node and no field key bound — the
+     * {@see Rule::json()} bridge, which nests them under its field like any
+     * other chain failure. {@see validate()} is the user-facing entry.
+     *
+     * @internal
+     */
+    public function outcome(mixed $node): Outcome
+    {
+        [$value, $failures] = $this->apply($node);
+
+        return new Outcome($value, $failures);
+    }
+
+    /**
      * Validates one node: `[cleanValue, failures]`, the failures carrying
      * their path relative to this node.
      *

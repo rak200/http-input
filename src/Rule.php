@@ -20,6 +20,7 @@ use Rak200\Utils\Arr;
 use Rak200\Utils\Dt;
 use Rak200\Utils\Enum;
 use Rak200\Utils\Filter;
+use Rak200\Utils\Json;
 use Rak200\Utils\Num;
 use Rak200\Utils\Regex;
 use Rak200\Utils\Str;
@@ -49,9 +50,9 @@ use function is_subclass_of;
  * to the type without loss is also accepted (one step past `Filter::to*` —
  * the whole decimal `42.0` narrows to int 42; the fraction `42.5` never
  * does). The domain coercers ({@see date()}, {@see time()},
- * {@see datetime()}, {@see timestamp()}, {@see Enum()}) have no native
- * carrier, so they always coerce from their string or number carrier and
- * the flag is inert on them.
+ * {@see datetime()}, {@see timestamp()}, {@see Enum()}, {@see Json()}) have
+ * no native carrier, so they always coerce from their string or number
+ * carrier and the flag is inert on them.
  *
  * @author rak200 <rak.ricardo@windowslive.com>
  */
@@ -68,9 +69,10 @@ final class Rule
     private const string TIMESTAMP = 'timestamp';
     private const string ENUM = 'enum';
     private const string LIST = 'list';
+    private const string JSON = 'json';
 
     /**
-     * @var self::BOOL|self::DATE|self::DATETIME|self::ENUM|self::FLOAT|self::INT|self::LIST|self::NUM|self::STR|self::TIME|self::TIMESTAMP
+     * @var self::BOOL|self::DATE|self::DATETIME|self::ENUM|self::FLOAT|self::INT|self::JSON|self::LIST|self::NUM|self::STR|self::TIME|self::TIMESTAMP
      */
     private string $type;
 
@@ -103,6 +105,11 @@ final class Rule
     private ?self $element = null;
 
     /**
+     * The tree schema of a json chain; null passes the decoded root as-is.
+     */
+    private ?Schema $schema = null;
+
+    /**
      * Chain steps in declaration order. Each step sees the coerced value and
      * answers: null (pass), a Violation (fail), or false (a `requires()` gate
      * tripped — skip every remaining step).
@@ -112,7 +119,7 @@ final class Rule
     private array $steps = [];
 
     /**
-     * @param self::BOOL|self::DATE|self::DATETIME|self::ENUM|self::FLOAT|self::INT|self::LIST|self::NUM|self::STR|self::TIME|self::TIMESTAMP $type
+     * @param self::BOOL|self::DATE|self::DATETIME|self::ENUM|self::FLOAT|self::INT|self::JSON|self::LIST|self::NUM|self::STR|self::TIME|self::TIMESTAMP $type
      */
     private function __construct(string $type, string $coercionMessage)
     {
@@ -265,6 +272,26 @@ final class Rule
     {
         $rule = new self(self::LIST, 'must be a list');
         $rule->element = $element;
+
+        return $rule;
+    }
+
+    /**
+     * Opens an embedded-JSON chain: the value is a string carrying a whole
+     * JSON document (a form field submitting a structured payload), decoded
+     * via {@see Json::decode} — always from its string carrier, on the flat
+     * bag and in a typed tree alike. Bare, any valid root passes as the
+     * decoded value (a `null` root is a successful null); with $schema the
+     * decoded tree is validated against it (RFC 0014) and yields the clean
+     * tree, failures keyed by the offending node's path relative to the
+     * field (`payload.items.0.qty` in the collect bag). A malformed document
+     * is an ordinary input failure — deliberately unlike {@see Input::json()},
+     * where a malformed *body* throws JsonException.
+     */
+    public static function json(?Schema $schema = null): self
+    {
+        $rule = new self(self::JSON, 'must be valid JSON');
+        $rule->schema = $schema;
 
         return $rule;
     }
@@ -601,6 +628,7 @@ final class Rule
             self::TIMESTAMP => self::wrap(self::lenientInt($value)),
             self::ENUM => $this->coerceToEnum($value),
             self::LIST => $this->coerceToList($value, $typed),
+            self::JSON => $this->coerceToJson($value),
         };
     }
 
@@ -767,6 +795,28 @@ final class Rule
         }
 
         return [true, $values, $failures];
+    }
+
+    /**
+     * Decodes the embedded JSON document and, with a schema attached, runs
+     * the decoded tree through it; schema failures carry their path relative
+     * to the field and — like a listOf's element failures — do not block the
+     * later verifiers, which see the clean tree.
+     *
+     * @return array{0: bool, 1: mixed, 2: list<InputException>}
+     */
+    private function coerceToJson(mixed $value): array
+    {
+        if (!Json::is($value)) {
+            return [false, null, []];
+        }
+        $decoded = Json::decode($value);
+        if ($this->schema === null) {
+            return [true, $decoded, []];
+        }
+        $outcome = $this->schema->outcome($decoded);
+
+        return [true, $outcome->value, $outcome->failures];
     }
 
     /**

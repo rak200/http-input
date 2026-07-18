@@ -146,6 +146,16 @@ final class Accessor
     }
 
     /**
+     * Opens the chain as an embedded-JSON read, optionally validated against
+     * $schema — see {@see Rule::json()}; schema failures are path-keyed
+     * relative to the field (`payload.items.0.qty`).
+     */
+    public function json(?Schema $schema = null): self
+    {
+        return $this->open(Rule::json($schema));
+    }
+
+    /**
      * Opts into lenient, lossless coercion — see {@see Rule::coerce()}.
      */
     public function coerce(): self

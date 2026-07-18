@@ -20,10 +20,16 @@ use Rak200\HttpInput\Input;
 
 ## The chain, bound
 
-Every chain method of [`Rule`](rule.md) exists on the accessor as a one-line delegation — same names, same semantics: `str` / `int` / `float` / `num` / `bool` / `date` / `time` / `datetime` / `timestamp` / `enum` / `listOf` open the chain; `coerce` / `required` / `nullable`, the verifiers, `requires`, and `rule` / `satisfy` follow. Keys are looked up **literally** (never dot-paths), with flat-request-bag semantics: a bare coercer asserts the value's text format.
+Every chain method of [`Rule`](rule.md) exists on the accessor as a one-line delegation — same names, same semantics: `str` / `int` / `float` / `num` / `bool` / `date` / `time` / `datetime` / `timestamp` / `enum` / `listOf` / `json` open the chain; `coerce` / `required` / `nullable`, the verifiers, `requires`, and `rule` / `satisfy` follow. Keys are looked up **literally** (never dot-paths), with flat-request-bag semantics: a bare coercer asserts the value's text format.
 
 ```php
 Input::from($_GET, 'page')->int()->min(1);       // an accessor, chain open, no terminal yet
+```
+
+[`json`](rule.md#json) reads a form field carrying an embedded JSON document, optionally validated against a [`Schema`](schema.md); schema failures are path-keyed relative to the field, so terminals and the collect bag report them as `payload.items.0.qty`:
+
+```php
+Input::from($_POST, 'payload')->json($schema)->value();   // the clean tree, or the first failure thrown
 ```
 
 [↑ Back to top](#accessor)

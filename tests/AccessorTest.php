@@ -15,6 +15,7 @@ use Rak200\HttpInput\Exception\MissingInputException;
 use Rak200\HttpInput\Exception\OutOfRangeInputException;
 use Rak200\HttpInput\Input;
 use Rak200\HttpInput\Rule;
+use Rak200\HttpInput\Schema;
 use Rak200\HttpInput\Tests\Fixture\Priority;
 use Rak200\HttpInput\Violation;
 
@@ -316,6 +317,39 @@ final class AccessorTest extends TestCase
         $seen = Input::from(['seen' => '2026-01-15 09:30:00'], 'seen')->datetime()->value();
         $this->assertInstanceOf(DateTimeImmutable::class, $seen);
         $this->assertSame('2026-01-15 09:30:00', $seen->format('Y-m-d H:i:s'));
+    }
+
+    public function testJsonOpensTheChainThroughTheAccessor(): void
+    {
+        $this->assertSame(
+            ['a' => 1],
+            Input::from(['payload' => '{"a": 1}'], 'payload')->json()->value(),
+        );
+        $this->assertSame(
+            ['qty' => 2],
+            Input::from(['payload' => '{"qty": 2}'], 'payload')
+                ->json(Schema::object(['qty' => Rule::int()->min(1)]))
+                ->value(),
+        );
+    }
+
+    public function testAThrownSchemaFailureCarriesTheCompositeKey(): void
+    {
+        $schema = Schema::object([
+            'items' => Schema::listOf(Schema::object(['qty' => Rule::int()->min(1)])),
+        ]);
+
+        try {
+            Input::from(['payload' => '{"items": [{"qty": 0}]}'], 'payload')->json($schema)->value();
+            $this->fail('value() should have thrown');
+        } catch (OutOfRangeInputException $exception) {
+            $this->assertSame('payload.items.0.qty', $exception->key());   // == the collect bag key
+        }
+    }
+
+    public function testOrNullDiscardsAMalformedJsonField(): void
+    {
+        $this->assertNull(Input::from(['payload' => '{oops'], 'payload')->json()->orNull());
     }
 
     public function testNullableAcceptsAPresentNullThroughTheAccessor(): void

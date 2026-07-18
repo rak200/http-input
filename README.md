@@ -62,6 +62,7 @@ Input::from($src, 'at')->datetime();                 // DateTimeImmutable ('Y-m-
 Input::from($src, 'since')->timestamp();             // int (epoch seconds)
 Input::from($src, 'role')->enum(Role::class);        // the enum case, by backed value
 Input::from($src, 'tags')->listOf(Rule::str());      // list, each element checked
+Input::from($src, 'payload')->json($schema);         // embedded JSON document (Schema optional)
 ```
 
 A bare coercer **asserts** — the value must already present as the type (`'42'` is an int, `'42.0'` is not). `->coerce()` opts into any *lossless* conversion: `'42.0'` → `42`, but `'42.5'` never becomes an int. An unchecked checkbox submits nothing, so for a bare `bool()` absence is a legitimate `false`, not missing data.
@@ -116,6 +117,14 @@ $clean = $result->valid();   // the typed tree — or throws the first failure
 ```
 
 A bare JSON leaf asserts the **decoded type** (`{"qty": "42"}` fails `Rule::int()` — a client bug, not something to silently accept); `->coerce()` opts into lossless conversion, same as on the flat bag.
+
+A **form field** can carry a whole JSON document too: `->json($schema)` decodes it and runs the same schema *inside* the chain, so the field joins the collect flow with the flat fields — failures land in the one bag, keyed `payload.items.0.qty`; a malformed document is an ordinary field failure (`'must be valid JSON'`), not a body-level `JsonException`. The `Schema` is optional — bare `->json()` just decodes.
+
+```php
+$form    = Input::validate($_POST);
+$name    = $form->field('name')->str()->required()->get();
+$payload = $form->field('payload')->json($schema)->required()->get();
+```
 
 ## Failures are typed
 
