@@ -15,7 +15,7 @@ The **cross-library rak200 PHP conventions** (baseline & tooling, dev dependenci
 ## Structure
 
 ```
-input/
+http-input/
 ├── docs/                  # per-class reference pages (see docs/README.md index)
 ├── src/
 │   ├── Input.php          # static entry facade: from(), validate(), superglobal shortcuts
@@ -62,7 +62,7 @@ General testing conventions are in the shared file. http-input specifics:
 SemVer policy and the release checklist live in the shared conventions. http-input deltas:
 
 - Not on Packagist yet — consumers resolve from git (see the Project Overview note on the `path` repository).
-- CI deviates from the canonical workflow in one step: it checks out `rak200/utils` **next to** the repo (twin `actions/checkout` into `input/` + `utils/`, `working-directory: input`) so the `"type": "path"` repository entry resolves — meaning CI tests against utils *master*, not a released tag, faithful to the local sibling arrangement until both libraries land on Packagist.
+- CI deviates from the canonical workflow in one step: it checks out `rak200/utils` **next to** the repo (twin `actions/checkout` into `http-input/` + `utils/`, `working-directory: http-input`) so the `"type": "path"` repository entry resolves — meaning CI tests against utils *master*, not a released tag, faithful to the local sibling arrangement until both libraries land on Packagist.
 
 ## Roadmap
 
