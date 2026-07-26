@@ -10,7 +10,7 @@ The **cross-library rak200 PHP conventions** (baseline & tooling, dev dependenci
 
 **rak200/http-input** is a PHP 8.4+ library for strict, typed reading and validation of HTTP request data (`$_GET`, `$_POST`, cookies, server, env). Reads flow through a **constraint chain** (RFC 0013 in the devr repository): exactly one coercer fixes the value's type, verifiers check it, and a terminal decides every failure's fate — `value()` throws, `orNull()`/`orElse()` fall back, `get()` collects into a validator. Reading, verification, and validation are one mechanism; coercion delegates to `Rak200\Utils` (`Filter`, `Dt`, `Enum`) — the request-layer companion that keeps `utils` pure.
 
-**Deliberate deviation from the shared "no runtime Composer dependencies" rule:** http-input requires **`rak200/utils` (`^4.0`)** at runtime — coercion is delegated to its `Filter` (`toStr` / `toInt` / `toFloat` / `toBool`) and key handling to `Arr` (the prefer-lib-over-native rule applied across libraries). utils is currently consumed through a `"type": "path"` repository entry pointing at the sibling `../utils` checkout — a local-development arrangement; consumers need a `"type": "vcs"` entry per repository (the pattern caster's README documents) until both libraries land on Packagist.
+**Deliberate deviation from the shared "no runtime Composer dependencies" rule:** http-input requires **`rak200/utils` (`^4.0`)** at runtime — coercion is delegated to its `Filter` (`toStr` / `toInt` / `toFloat` / `toBool`) and key handling to `Arr` (the prefer-lib-over-native rule applied across libraries). utils is consumed through a `"type": "vcs"` repository entry pointing at `https://github.com/rak200/utils`, so it resolves from released tags like any other dependency. Composer only reads `repositories` from the root project, so consumers must list **both** repositories themselves (the pattern caster's README documents, mirrored in this repo's README) until both libraries land on Packagist.
 
 ## Structure
 
@@ -55,14 +55,19 @@ General testing conventions are in the shared file. http-input specifics:
 - The RFC 0013/0014 behaviour tables (numeric assert/coerce, bool vocabulary) are data providers 1:1; `Rule` tests are split per coercer (caster-style: `RuleIntTest`, `RuleBoolTest`, …).
 - Everything except the superglobal shortcuts is tested pure — literal source arrays in, values out. Shortcut tests mutate `$_GET` / `$_POST` / `$_REQUEST` / `$_COOKIE` / `$_SERVER` / `$_ENV` and carry `#[BackupGlobals(true)]` so the mutation never leaks across tests. `Input::json()` is tested end-to-end by re-registering the `php` stream protocol with `tests/Fixture/PhpStreamMock.php` (always restored in a `finally`).
 - Test enums (and the stream mock) live in `tests/Fixture/`.
-- **Mutation testing** runs via Infection (`composer infection`, config in `infection.json5`; locally it needs `XDEBUG_MODE=coverage`, and on Windows the config pins `phpUnit.customPath` because autodetection fails there). Every escaped mutant must be *investigated and resolved* — a strengthened test, or deleting the dead code the mutant points at; `@infection-ignore-all` is a last resort that requires an inline justification (none currently in the codebase). CI runs Infection on the floor job.
+- **Mutation testing** runs via Infection (config in `infection.json5`; on Windows it pins `phpUnit.customPath` because autodetection fails there). The `composer infection` / `infection-diff` scripts set `XDEBUG_MODE=coverage` and disable Composer's process timeout — a full run blows past the default 300 s. Every escaped mutant must be *investigated and resolved* — a strengthened test, or deleting the dead code the mutant points at; `@infection-ignore-all` is a last resort that requires an inline justification (none currently in the codebase).
+- **Where Infection runs** (the utils pattern, ported here — a full run is minutes of CPU for a diff of a few lines; the `minMsi` / `minCoveredMsi: 100` gate itself is unchanged):
+  - **Pull requests (blocking):** only the **changed lines**, floor `8.4` job — `composer infection -- --git-diff-lines --git-diff-base=origin/master --logger-github --ignore-msi-with-no-mutations`. Needs `fetch-depth: 0` on checkout so `origin/master` is there to diff against; `--ignore-msi-with-no-mutations` lets a docs/tests-only PR pass instead of failing on zero mutants.
+  - **Push to `master`:** no mutation step. Unlike utils, `master` here is **not** branch-protected and releases land as direct pushes — those are deliberately left un-gated rather than paying a full run on every push. The cost is real: a change that never went through a PR is never mutation-tested by CI.
+  - **Full run:** manual only, via the workflow's `workflow_dispatch` trigger. Run it before a significant release — with direct pushes un-gated it is the only CI-side safety net, and the only thing that catches cross-file MSI drift the diff gate cannot see.
+  - **Locally:** `composer infection-diff` mutates just your uncommitted changes against `master`; `composer infection` is the full run.
 
 ## Versioning & releases
 
 SemVer policy and the release checklist live in the shared conventions. http-input deltas:
 
-- Not on Packagist yet — consumers resolve from git (see the Project Overview note on the `path` repository).
-- CI deviates from the canonical workflow in one step: it checks out `rak200/utils` **next to** the repo (twin `actions/checkout` into `http-input/` + `utils/`, `working-directory: http-input`) so the `"type": "path"` repository entry resolves — meaning CI tests against utils *master*, not a released tag, faithful to the local sibling arrangement until both libraries land on Packagist.
+- Not on Packagist yet — consumers resolve from git (see the Project Overview note on the `vcs` repository).
+- CI follows the canonical workflow: a single `actions/checkout` at the workspace root, and `composer install` pulls utils from GitHub through the `vcs` entry — so CI tests against the utils *tag* the constraint resolves to, not master.
 
 ## Roadmap
 

@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-07-25
+
+Packaging and internal quality only — no public API or behaviour change.
+
+### Changed
+
+- **`rak200/utils` is now resolved as a VCS package** (`"type": "vcs"`, `https://github.com/rak200/utils`) instead of the `"type": "path"` entry pointing at a sibling `../utils` checkout. The dependency resolves from released tags like any other package, so an install no longer depends on the local development layout. Because Composer only reads `repositories` from the root project, a consuming project must declare **both** VCS repositories (http-input and utils) until the libraries land on Packagist — the README's installation section now documents the pattern instead of implying a plain `composer require` works.
+- CI drops the twin-checkout workaround the `path` entry required (`rak200/utils` checked out next to the repo, `working-directory: http-input`): a single `actions/checkout` at the workspace root now suffices, and `composer install` pulls utils from GitHub. Consequently CI tests against the utils **tag** the constraint resolves to, not utils *master* — the same resolution a consumer gets.
+- **Mutation testing now gates the diff, not the whole tree** (the arrangement `rak200/utils` proved out, ported here). On a pull request Infection mutates only the **changed lines** (`--git-diff-lines --git-diff-base=origin/master --ignore-msi-with-no-mutations`, floor `8.4` job), which is why checkout now uses `fetch-depth: 0`; a push to `master` runs no mutation step, and the full run moved to the workflow's new `workflow_dispatch` manual trigger — `master` is not branch-protected here, so a direct push (how releases land) is deliberately left un-gated rather than paying a full run every time. Locally, `composer infection-diff` mutates just the uncommitted changes against `master`; `composer infection` stays the full run. Both scripts now set `XDEBUG_MODE=coverage` themselves and disable Composer's process timeout — a full run exceeds the default 300 s and was dying mid-way. The `minMsi` / `minCoveredMsi: 100` gate itself is unchanged.
+- `Rule` delegates its last replaceable native calls to `rak200/utils`, applying the prefer-lib-over-native rule: `is_subclass_of` → `Type::isSubclass()` (dropping the import), `$bound->format(DateTimeInterface::ATOM)` → `Dt::iso()` in the range-message renderer, and `lenBetween`'s hand-rolled interval test → `Num::inRange()`. All three are private helpers; messages and behaviour are unchanged. The one native call left in the library that could be delegated is `Rule::email()`'s `filter_var(..., FILTER_VALIDATE_EMAIL)`: utils has no validating counterpart to `Url::is()` yet (`Filter::email()` only sanitises), so the gap is tracked on the utils roadmap.
+
 ## [0.4.0] - 2026-07-17
 
 ### Added
@@ -84,6 +95,7 @@ The pre-1.0 redesign fixed by RFCs 0013/0014 (devr repository): reading, verific
   - Pure core over a caller-supplied source array: `str`, `int` (with optional `min`/`max` clamping), `float` (with optional `min`/`max`), `bool` (HTML-form semantics via `Filter::toBool`), `array`, `has`, `all`. A missing key or uncoercible value returns the supplied default — no exceptions.
   - Convenience shortcuts that read a string from a superglobal: `get` (`$_GET`), `post` (`$_POST`), `request` (`$_REQUEST`), `cookie` (`$_COOKIE`), `server` (`$_SERVER`), `env` (`$_ENV`). Typed reads from superglobals use the core directly, e.g. `Input::int($_GET, 'page', 1)`.
 
+[0.4.1]: https://github.com/rak200/http-input/compare/0.4.0...0.4.1
 [0.4.0]: https://github.com/rak200/http-input/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/rak200/http-input/compare/0.2.2...0.3.0
 [0.2.2]: https://github.com/rak200/http-input/compare/0.2.1...0.2.2

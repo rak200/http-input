@@ -43,6 +43,19 @@ The chain is byte-for-byte the same in all three modes — only the terminal cha
 
 ## Installation
 
+Not published on Packagist — install straight from the GitHub repository as a Composer VCS package. Because `rak200/utils` is also VCS-only and Composer only reads `repositories` from the root project, the consuming project must list **both** repositories:
+
+```json
+{
+    "repositories": [
+        { "type": "vcs", "url": "https://github.com/rak200/http-input" },
+        { "type": "vcs", "url": "https://github.com/rak200/utils" }
+    ]
+}
+```
+
+then require it as usual:
+
 ```bash
 composer require rak200/http-input
 ```

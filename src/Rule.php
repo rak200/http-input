@@ -29,7 +29,6 @@ use Rak200\Utils\Url;
 use UnitEnum;
 
 use function filter_var;
-use function is_subclass_of;
 
 /**
  * A free-standing constraint chain: exactly one coercer, then verifiers —
@@ -412,7 +411,7 @@ final class Rule
     public function lenBetween(int $min, int $max): self
     {
         return $this->lengthConstraint(
-            static fn (int $actual): bool => $actual >= $min && $actual <= $max,
+            static fn (int $actual): bool => Num::inRange($actual, $min, $max),
             "must have between {$min} and {$max} items",
             "must be between {$min} and {$max} characters",
         );
@@ -759,7 +758,7 @@ final class Rule
         // Branch on the backing type before narrowing the class-string, so
         // the scalar coerces to what tryFrom() expects.
         $intBacked = Enum::isBackedInt($cases[0]);
-        if (!is_subclass_of($class, BackedEnum::class)) {
+        if (!Type::isSubclass($class, BackedEnum::class)) {
             return [false, null, []];   // defensive: enum() rejects pure enums without byName
         }
         $scalar = $intBacked ? Filter::toInt($value) : Filter::toStr($value);
@@ -899,7 +898,7 @@ final class Rule
      */
     private static function bound(DateTimeInterface|float|int $bound): string
     {
-        return $bound instanceof DateTimeInterface ? $bound->format(DateTimeInterface::ATOM) : (string) $bound;
+        return $bound instanceof DateTimeInterface ? Dt::iso($bound) : (string) $bound;
     }
 
     /**

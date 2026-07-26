@@ -5,13 +5,10 @@ on:
     branches: [master]
   pull_request:
     branches: [master]
+  workflow_dispatch: # manual trigger for the full mutation-testing run
 
 permissions:
   contents: read
-
-defaults:
-  run:
-    working-directory: http-input
 
 jobs:
   test:
@@ -26,16 +23,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
         with:
-          path: http-input
-
-      # rak200/utils is consumed through a "type": "path" repository entry
-      # pointing at the sibling ../utils checkout (see CLAUDE.md), so CI
-      # recreates that layout: both repos side by side in the workspace.
-      - name: Checkout rak200/utils (path dependency)
-        uses: actions/checkout@v5
-        with:
-          repository: rak200/utils
-          path: utils
+          fetch-depth: 0 # full history so Infection can diff against origin/master
 
       - name: Setup PHP ${{ matrix.php }}
         uses: shivammathur/setup-php@v2
@@ -61,15 +49,23 @@ jobs:
       - name: PHPUnit
         run: composer test -- --coverage-clover=coverage.xml
 
-      - name: Infection (mutation testing)
-        if: matrix.php == '8.4'
-        run: composer infection
+      # Only the changed lines are mutated on a PR — a full run is minutes of
+      # CPU for a diff of a few lines. master is NOT protected here, so a
+      # direct push (how releases land) is deliberately left un-gated: run the
+      # full suite manually via workflow_dispatch before a significant release.
+      - name: Infection (mutation testing, diff)
+        if: matrix.php == '8.4' && github.event_name == 'pull_request'
+        run: composer infection -- --git-diff-lines --git-diff-base=origin/master --logger-github --ignore-msi-with-no-mutations
+
+      - name: Infection (mutation testing, full)
+        if: matrix.php == '8.4' && github.event_name == 'workflow_dispatch'
+        run: composer infection -- --logger-github
 
       - name: Upload coverage to Codecov
         if: matrix.php == '8.4'
         uses: codecov/codecov-action@v7
         with:
-          files: http-input/coverage.xml
+          files: coverage.xml
           fail_ci_if_error: false
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
